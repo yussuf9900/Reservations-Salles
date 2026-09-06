@@ -7,6 +7,7 @@ namespace App;
 use App\View\ViewRenderer;
 use FastRoute\Dispatcher;
 use Psr\Container\ContainerInterface;
+use Throwable;
 
 class Application
 {
@@ -19,49 +20,57 @@ class Application
 
     public function run(): void
     {
-        $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        try {
+            $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+            $uri = $_SERVER['REQUEST_URI'] ?? '/';
 
-        // Supprimer la query string (?...) avant le dispatch
-        if (false !== ($pos = strpos($uri, '?'))) {
-            $uri = substr($uri, 0, $pos);
-        }
-        $uri = rawurldecode($uri);
+            // Supprimer la query string (?...) avant le dispatch
+            if (false !== ($pos = strpos($uri, '?'))) {
+                $uri = substr($uri, 0, $pos);
+            }
+            $uri = rawurldecode($uri);
 
-        $routeInfo = $this->dispatcher->dispatch($httpMethod, $uri);
+            $routeInfo = $this->dispatcher->dispatch($httpMethod, $uri);
 
-        switch ($routeInfo[0]) {
-            case Dispatcher::NOT_FOUND:
-                http_response_code(404);
-                echo $this->view->render('error/404', ['title' => 'Page introuvable']);
-                break;
+            switch ($routeInfo[0]) {
+                case Dispatcher::NOT_FOUND:
+                    http_response_code(404);
+                    echo $this->view->render('error/404', ['title' => 'Page introuvable']);
+                    break;
 
-            case Dispatcher::METHOD_NOT_ALLOWED:
-                $allowedMethods = $routeInfo[1];
-                http_response_code(405);
-                header('Allow: ' . implode(', ', $allowedMethods));
-                echo $this->view->render('error/405', [
-                    'title'          => 'Méthode non autorisée',
-                    'allowedMethods' => $allowedMethods,
-                ]);
-                break;
+                case Dispatcher::METHOD_NOT_ALLOWED:
+                    $allowedMethods = $routeInfo[1];
+                    http_response_code(405);
+                    header('Allow: ' . implode(', ', $allowedMethods));
+                    echo $this->view->render('error/405', [
+                        'title'          => 'Méthode non autorisée',
+                        'allowedMethods' => $allowedMethods,
+                    ]);
+                    break;
 
-            case Dispatcher::FOUND:
-                $handler = $routeInfo[1];
-                $vars = $routeInfo[2];
+                case Dispatcher::FOUND:
+                    $handler = $routeInfo[1];
+                    $vars = $routeInfo[2];
 
-                [$controllerClass, $method] = $handler;
+                    [$controllerClass, $method] = $handler;
 
-                // Le conteneur résout le contrôleur avec toutes ses dépendances
-                $controller = $this->container->get($controllerClass);
+                    // Le conteneur résout le contrôleur avec toutes ses dépendances
+                    $controller = $this->container->get($controllerClass);
 
-                // Invocation de la méthode en lui injectant les variables d'URL (ex: id)
-                $response = $controller->$method(...array_values($vars));
+                    // Invocation de la méthode en lui injectant les variables d'URL (ex: id)
+                    $response = $controller->$method(...array_values($vars));
 
-                if (is_string($response)) {
-                    echo $response;
-                }
-                break;
+                    if (is_string($response)) {
+                        echo $response;
+                    }
+                    break;
+            }
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo $this->view->render('error/500', [
+                'title'   => 'Erreur 500',
+                'message' => $e->getMessage() . "\n" . $e->getTraceAsString(),
+            ]);
         }
     }
 }
