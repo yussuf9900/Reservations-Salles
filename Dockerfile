@@ -3,13 +3,12 @@ FROM php:8.3-apache
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-    mariadb-server \
-    mariadb-client \
+    curl \
     git \
     unzip \
     libicu-dev \
     libzip-dev \
-    && docker-php-ext-install pdo_mysql intl \
+    && docker-php-ext-install pdo_mysql intl zip \
     && a2enmod rewrite \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -27,10 +26,14 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 
 COPY . .
 
+RUN composer dump-autoload --optimize --no-dev
 RUN if [ ! -f .env ]; then cp .env.example .env; fi
 RUN chown -R www-data:www-data /var/www/html \
     && chmod +x youssou:migrate youssou:seed youssou
 
-EXPOSE 80 3306
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -5,12 +5,20 @@ on:
     tags:
       - 'v*'
       - '*'
+  workflow_dispatch:
+    inputs:
+      sync_all_tags:
+        description: 'Synchroniser tous les tags Git existants vers Docker Hub'
+        required: false
+        type: boolean
+        default: true
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  DOCKER_REPO_NAME: ${{ secrets.DOCKER_REPO_NAME != '' && secrets.DOCKER_REPO_NAME || 'reservations-salles' }}
 
 jobs:
   build-and-push:
@@ -22,6 +30,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -46,12 +56,10 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ env.DOCKER_USERNAME != '' && format('{0}/reservations-salles', env.DOCKER_USERNAME) || '' }}
+            ${{ env.DOCKER_USERNAME != '' && format('{0}/{1}', env.DOCKER_USERNAME, env.DOCKER_REPO_NAME) || '' }}
           tags: |
             type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ !contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc') }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -62,3 +70,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Synchroniser tous les tags Git vers Docker Hub
+        if: github.event_name == 'workflow_dispatch' && inputs.sync_all_tags == true && env.DOCKER_USERNAME != ''
+        run: |
+          chmod +x ./scripts/docker-push-all-tags.sh
+          ./scripts/docker-push-all-tags.sh "${{ env.DOCKER_USERNAME }}"
