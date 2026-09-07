@@ -54,13 +54,10 @@ class SalleController
 
     public function store(): string
     {
-        // 1. Lire les données HTTP
         $data = $_POST;
 
-        // 2. Appeler le validateur
         $result = $this->validator->validate($data);
 
-        // 3. Réafficher le formulaire en cas d'erreur
         if (!$result->isValid()) {
             return $this->view->render('salle/form', [
                 'title'  => 'Ajouter une salle',
@@ -69,10 +66,8 @@ class SalleController
             ]);
         }
 
-        // 4. Construire le DTO
-        $dto = CreerSalleDTO::fromArray($result->validated());
+        $dto = CreerSalleDTO::builder()->fromArray($result->validated())->build();
 
-        // 5. Utiliser le repository pour persister
         $salle = new Salle([
             'nom'      => $dto->nom,
             'batiment' => $dto->batiment,
@@ -83,7 +78,6 @@ class SalleController
 
         $this->salles->save($salle);
 
-        // 6. Rediriger après succès
         $this->view->setFlash('success', "La salle '{$salle->nom}' a été créée avec succès.");
         header('Location: /salles/' . $salle->id);
         exit;
@@ -131,7 +125,7 @@ class SalleController
             ]);
         }
 
-        $dto = CreerSalleDTO::fromArray($result->validated());
+        $dto = CreerSalleDTO::builder()->fromArray($result->validated())->build();
 
         $salle->nom = $dto->nom;
         $salle->batiment = $dto->batiment;

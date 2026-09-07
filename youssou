@@ -1,0 +1,30 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+$command = $argv[1] ?? 'help';
+
+switch ($command) {
+    case 'migrate':
+    case 'youssou:migrate':
+        require __DIR__ . '/youssou:migrate';
+        break;
+
+    case 'seed':
+    case 'youssou:seed':
+        require __DIR__ . '/youssou:seed';
+        break;
+
+    case 'help':
+    case '--help':
+    case '-h':
+    default:
+        echo "Console UnivSalles (CLI Youssou)\n";
+        echo "Usage: php youssou [commande] ou php youssou:<commande>\n\n";
+        echo "Commandes disponibles:\n";
+        echo "  migrate (ou php youssou:migrate)  Executer les migrations de la base de donnees\n";
+        echo "  seed    (ou php youssou:seed)     Peupler la base de donnees avec les salles initiales\n";
+        echo "  help                              Afficher cette aide\n";
+        break;
+}

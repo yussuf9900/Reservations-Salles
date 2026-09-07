@@ -73,13 +73,10 @@ class ReservationController
 
     public function store(): string
     {
-        // 1. Lire les données HTTP
         $data = $_POST;
 
-        // 2. Appeler le validateur syntaxique
         $result = $this->validator->validate($data);
 
-        // 3. Réafficher le formulaire en cas d'erreur de validation
         if (!$result->isValid()) {
             return $this->view->render('reservation/form', [
                 'title'               => 'Nouvelle réservation',
@@ -90,9 +87,8 @@ class ReservationController
             ]);
         }
 
-        // 4. Construire le DTO
         try {
-            $dto = CreerReservationDTO::fromArray($result->validated());
+            $dto = CreerReservationDTO::builder()->fromArray($result->validated())->build();
         } catch (\Throwable $e) {
             return $this->view->render('reservation/form', [
                 'title'               => 'Nouvelle réservation',
@@ -103,7 +99,6 @@ class ReservationController
             ]);
         }
 
-        // 5. Appeler le service métier
         try {
             $reservation = $this->creerReservationService->execute($dto);
         } catch (SalleIndisponibleException $e) {
@@ -117,7 +112,6 @@ class ReservationController
             ]);
         }
 
-        // 6. Rediriger après succès
         $this->view->setFlash('success', 'Réservation confirmée avec succès.');
         header('Location: /reservations/' . $reservation->id);
         exit;
