@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
+use App\DTO\Builder\CreerSalleDTOBuilder;
+
 class CreerSalleDTO
 {
     public function __construct(
@@ -15,14 +17,23 @@ class CreerSalleDTO
     ) {
     }
 
+    public static function builder(): CreerSalleDTOBuilder
+    {
+        return new CreerSalleDTOBuilder();
+    }
+
     public static function fromArray(array $data): self
     {
-        return new self(
-            nom: trim((string)($data['nom'] ?? '')),
-            batiment: trim((string)($data['batiment'] ?? '')),
-            capacite: (int)($data['capacite'] ?? 0),
-            type: (string)($data['type'] ?? ''),
-            active: isset($data['active']) ? (bool)filter_var($data['active'], FILTER_VALIDATE_BOOLEAN) : true
-        );
+        return self::builder()->fromArray($data)->build();
+    }
+
+    public function toBuilder(): CreerSalleDTOBuilder
+    {
+        return self::builder()
+            ->nom($this->nom)
+            ->batiment($this->batiment)
+            ->capacite($this->capacite)
+            ->type($this->type)
+            ->active($this->active);
     }
 }

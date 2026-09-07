@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
+use App\DTO\Builder\CreerReservationDTOBuilder;
 use DateTimeImmutable;
-use InvalidArgumentException;
 
 class CreerReservationDTO
 {
@@ -19,25 +19,24 @@ class CreerReservationDTO
     ) {
     }
 
+    public static function builder(): CreerReservationDTOBuilder
+    {
+        return new CreerReservationDTOBuilder();
+    }
+
     public static function fromArray(array $data): self
     {
-        $debutRaw = $data['date_debut'] ?? $data['dateDebut'] ?? '';
-        $finRaw = $data['date_fin'] ?? $data['dateFin'] ?? '';
+        return self::builder()->fromArray($data)->build();
+    }
 
-        try {
-            $debut = new DateTimeImmutable((string)$debutRaw);
-            $fin = new DateTimeImmutable((string)$finRaw);
-        } catch (\Throwable $e) {
-            throw new InvalidArgumentException("Format de date invalide pour la réservation : " . $e->getMessage(), 0, $e);
-        }
-
-        return new self(
-            salleId: (int)($data['salle_id'] ?? $data['salleId'] ?? 0),
-            responsable: trim((string)($data['responsable'] ?? '')),
-            email: trim((string)($data['email'] ?? '')),
-            motif: trim((string)($data['motif'] ?? '')),
-            dateDebut: $debut,
-            dateFin: $fin
-        );
+    public function toBuilder(): CreerReservationDTOBuilder
+    {
+        return self::builder()
+            ->salleId($this->salleId)
+            ->responsable($this->responsable)
+            ->email($this->email)
+            ->motif($this->motif)
+            ->dateDebut($this->dateDebut)
+            ->dateFin($this->dateFin);
     }
 }

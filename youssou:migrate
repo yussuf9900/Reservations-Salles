@@ -1,0 +1,33 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+$initDb = require __DIR__ . '/config/database.php';
+$capsule = $initDb();
+
+try {
+    $capsule->getConnection()->getPdo();
+    fwrite(STDOUT, "[OK] Connexion a la base de donnees reussie.\n");
+} catch (\Throwable $e) {
+    fwrite(STDERR, "[ERREUR] Impossible de se connecter a la base : " . $e->getMessage() . "\n");
+    exit(1);
+}
+
+$migrations = [
+    __DIR__ . '/database/migrations/01_create_salles_table.php',
+    __DIR__ . '/database/migrations/02_create_reservations_table.php',
+];
+
+foreach ($migrations as $migrationFile) {
+    if (file_exists($migrationFile)) {
+        $migration = require $migrationFile;
+        $migration->up();
+        fwrite(STDOUT, "[MIGRATION] " . basename($migrationFile) . " appliquee avec succes.\n");
+    }
+}
+
+fwrite(STDOUT, "[SUCCES] Toutes les migrations ont ete executees.\n");
+exit(0);

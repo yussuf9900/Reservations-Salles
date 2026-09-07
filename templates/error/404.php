@@ -1,6 +1,9 @@
-<div class="error-page">
-    <h1>404</h1>
-    <h2>Page introuvable</h2>
-    <p>La ressource demandée n'existe pas ou a été déplacée.</p>
-    <a href="/salles" class="btn btn-primary">Retour à la liste des salles</a>
+<div class="error-page animate-in">
+    <div class="error-code">404</div>
+    <h1 class="error-title">Page Introuvable</h1>
+    <p class="error-desc">La ressource ou l'espace universitaire demandé n'existe pas ou a été déplacé.</p>
+    <a href="/salles" class="btn btn-primary">
+        <?= \App\View\Icons::building('icon-sm') ?>
+        <span>Retour aux salles</span>
+    </a>
 </div>

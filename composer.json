@@ -27,5 +27,9 @@
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true
+    },
+    "scripts": {
+        "youssou:migrate": "php youssou:migrate",
+        "youssou:seed": "php youssou:seed"
     }
 }
