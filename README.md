@@ -54,12 +54,53 @@ cp .env.example .env
 ```
 Par défaut, le fichier est configuré pour se connecter au port `3306` de MySQL avec l'utilisateur `root` et la base `reservation_salles`.
 
-### 4. Démarrer la base de données MySQL
-Un fichier `docker-compose.yml` préconfiguré est mis à disposition :
+### 4. Démarrer avec Docker Compose (Architecture 2 conteneurs)
+
+L'application est orchestrée via `docker-compose.yml` avec 2 conteneurs dédiés :
+1. **`app`** : Serveur web Apache + PHP 8.3 exécutant l'application UnivSalles.
+2. **`database`** : Serveur MySQL 8.0 officiel avec volume persistant `db_data`.
+
+#### Lancement en une commande (Recommandé)
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
-*Le conteneur MySQL 8.0 sera opérationnel sur `127.0.0.1:3306`.*
+ou via le script dédié :
+```bash
+./docker-run.sh
+```
+
+- **Application Web** : accessible sur **http://localhost:8080**
+- **Base MySQL** : accessible sur **127.0.0.1:3306** (utilisateur `root`, sans mot de passe)
+- Les migrations (`php youssou:migrate`) et le jeu de données initial (`php youssou:seed`) s'exécutent automatiquement au démarrage.
+- Toutes les données sont conservées durablement dans le volume Docker `db_data`.
+
+---
+
+### 🚢 Déploiement Continu & Synchronisation des Tags Docker Hub
+
+Un workflow GitHub Actions (`.github/workflows/docker-publish.yml`) publie automatiquement l'image Docker applicative sur **Docker Hub** et **GitHub Container Registry (GHCR)** à chaque nouveau tag Git :
+
+```bash
+# Release automatique d'une nouvelle version
+git tag v1.0.2
+git push origin v1.0.2
+```
+
+Le workflow génère automatiquement les tags Docker synchronisés :
+- `devyussuf/reservations-salles:v1.0.2`
+- `devyussuf/reservations-salles:1.0.2`
+- `devyussuf/reservations-salles:latest`
+
+#### Synchroniser l'ensemble des tags Git historiques d'un seul coup
+Pour propager l'intégralité des tags Git existants (`v0.0.0` à `v1.0.1`) vers Docker Hub en une seule commande :
+```bash
+./scripts/docker-push-all-tags.sh devyussuf
+```
+*(Cette opération peut également être déclenchée à la demande depuis l'onglet **Actions** de GitHub via le bouton **Run workflow**).*
+
+> 🔑 **Secrets GitHub requis :** `DOCKER_USERNAME` et `DOCKER_PASSWORD` configurés dans les Secrets Actions du dépôt.
+
+---
 
 ### 5. Exécuter les migrations (Création des tables)
 ```bash
