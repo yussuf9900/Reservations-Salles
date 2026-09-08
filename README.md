@@ -1,16 +1,12 @@
 # Système de Gestion des Réservations de Salles Universitaires
 
-[![PHP Version](https://img.shields.io/badge/PHP-8.2%20%7C%208.3-blue.svg)](https://php.net)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/PHPUnit-17%20passed-brightgreen.svg)]()
-
 Application web complète développée dans le cadre du projet **ODC-P8 (PHP Orienté Objet)**. Le système permet la consultation, l'administration des salles de cours et la réservation de créneaux sans doublons ni chevauchements.
 
 L'application est construite **sans framework complet**, en assemblant des composants spécialisés de haute qualité avec **Composer** selon une **architecture en couches**, les principes **SOLID** et le patron **Inversion de Contrôle**.
 
 ---
 
-## 🏛️ Architecture & Composants Clés
+## Architecture & Composants Clés
 
 - **Front Controller & Bootstrap** : `public/index.php` et `App\Application`
 - **Routeur HTTP** : `nikic/fast-route` (avec gestion explicite des erreurs 404 et 405 avec en-tête `Allow`)
@@ -22,11 +18,11 @@ L'application est construite **sans framework complet**, en assemblant des compo
 - **Règles Métier** : Services isolés (`CreerReservationService`, `AnnulerReservationService`)
 - **Suite de Tests** : `phpunit/phpunit` (tests unitaires en mémoire indépendants de MySQL + tests d'intégration)
 
-> 📘 Pour une analyse approfondie des choix techniques, des 14 concepts requis et des réponses aux questions de cours, consultez le document **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+> Pour une analyse approfondie des choix techniques, des 14 concepts requis et des réponses aux questions de cours, consultez le document **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ---
 
-## 📋 Prérequis
+## Prérequis
 
 - **PHP 8.2 ou 8.3** avec les extensions : `pdo`, `pdo_mysql`, `mbstring`, `intl`
 - **Composer 2.x**
@@ -34,7 +30,7 @@ L'application est construite **sans framework complet**, en assemblant des compo
 
 ---
 
-## 🚀 Guide d'Installation Pas-à-Pas
+## Guide d'Installation Pas-à-Pas
 
 ### 1. Cloner le dépôt et se placer dans le projet
 ```bash
@@ -76,7 +72,7 @@ ou via le script dédié :
 
 ---
 
-### 🚢 Déploiement Continu & Synchronisation des Tags Docker Hub
+### Déploiement Continu & Synchronisation des Tags Docker Hub
 
 Un workflow GitHub Actions (`.github/workflows/docker-publish.yml`) publie automatiquement l'image Docker applicative sur **Docker Hub** et **GitHub Container Registry (GHCR)** à chaque nouveau tag Git :
 
@@ -98,7 +94,7 @@ Pour propager l'intégralité des tags Git existants (`v0.0.0` à `v1.0.1`) vers
 ```
 *(Cette opération peut également être déclenchée à la demande depuis l'onglet **Actions** de GitHub via le bouton **Run workflow**).*
 
-> 🔑 **Secrets GitHub requis :** `DOCKER_USERNAME` et `DOCKER_PASSWORD` configurés dans les Secrets Actions du dépôt.
+> **Secrets GitHub requis :** `DOCKER_USERNAME` et `DOCKER_PASSWORD` configurés dans les Secrets Actions du dépôt.
 
 ---
 
@@ -116,7 +112,7 @@ Cette commande initialise les 5 salles requises (Amphithéâtre A, Salle B12, La
 
 ---
 
-## 💻 Lancement du Serveur de Développement
+## Lancement du Serveur de Développement
 
 Lancez le serveur web intégré de PHP en pointant le document root sur le dossier `public` :
 
@@ -125,11 +121,11 @@ php -S localhost:8000 -t public
 ```
 
 Rendez-vous ensuite sur votre navigateur à l'adresse :  
-👉 **http://localhost:8000** (ou directement sur **http://localhost:8000/salles**)
+**http://localhost:8000** (ou directement sur **http://localhost:8000/salles**)
 
 ---
 
-## 🧪 Exécution de la Suite de Tests
+## Exécution de la Suite de Tests
 
 Pour lancer l'ensemble des 17 tests (unitaires, validation et intégration) :
 
@@ -152,11 +148,11 @@ Pour lancer l'ensemble des 17 tests (unitaires, validation et intégration) :
 - **Tests d'intégration Eloquent** :
   - Création de salle, relations Modèle, recherche de chevauchement SQL et annulation
 
-> 💡 *Les tests unitaires utilisent des doublures en mémoire (`InMemorySalleRepository`, `InMemoryReservationRepository`) et s'exécutent instantanément sans aucune dépendance à MySQL.*
+> *Les tests unitaires utilisent des doublures en mémoire (`InMemorySalleRepository`, `InMemoryReservationRepository`) et s'exécutent instantanément sans aucune dépendance à MySQL.*
 
 ---
 
-## 📂 Structure du Répertoire
+## Structure du Répertoire
 
 ```
 ReservationSalleUniversite/
