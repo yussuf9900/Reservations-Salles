@@ -98,6 +98,51 @@ Pour propager l'intégralité des tags Git existants (`v0.0.0` à `v1.0.1`) vers
 
 ---
 
+### Exécuter l'Application Directement depuis Docker Hub (avec MySQL)
+
+> **Important :** L'image publiée sur Docker Hub (`devyussuf/reservations-salles`) est une image applicative (PHP 8.3 + Apache + Code). Conformément aux **bonnes pratiques Docker** ("un conteneur = une responsabilité"), elle n'embarque pas le serveur de base de données. Elle a donc besoin d'un conteneur MySQL 8.0 pour fonctionner.
+
+#### Méthode 1 : Via Docker Compose Hub (Recommandé - 1 commande)
+Sans cloner le code source, téléchargez simplement le fichier `docker-compose.hub.yml` (ou utilisez le script dédié) :
+
+```bash
+# Avec le script fourni
+./docker-run-hub.sh devyussuf/reservations-salles:latest
+
+# Ou manuellement via Docker Compose
+DOCKER_IMAGE=devyussuf/reservations-salles:latest docker compose -f docker-compose.hub.yml up -d
+```
+- L'application est immédiatement accessible sur **http://localhost:8080**
+- Le conteneur MySQL 8.0 officiel est automatiquement téléchargé et lié.
+- Les migrations et seeders sont exécutés au démarrage.
+
+#### Méthode 2 : Sans Docker Compose (avec `docker run`)
+Si vous préférez exécuter les conteneurs manuellement avec la CLI Docker :
+
+```bash
+# 1. Créer un réseau Docker partagé
+docker network create univ_net
+
+# 2. Démarrer le conteneur MySQL
+docker run -d \
+  --name reservation_salles_db \
+  --network univ_net \
+  -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
+  -e MYSQL_DATABASE=reservation_salles \
+  -v db_data:/var/lib/mysql \
+  mysql:8.0
+
+# 3. Démarrer l'application connectée au réseau et à la base
+docker run -d \
+  --name reservation_salles_app \
+  --network univ_net \
+  -p 8080:80 \
+  -e DB_HOST=reservation_salles_db \
+  devyussuf/reservations-salles:latest
+```
+
+---
+
 ### 5. Exécuter les migrations (Création des tables)
 ```bash
 php database/migrate.php
