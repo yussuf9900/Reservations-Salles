@@ -14,7 +14,7 @@ foreach ($reservations as $r) {
 <div class="page-header animate-in">
     <div class="title-wrap">
         <h1>Gestion des Réservations</h1>
-        <p class="subtitle">Consultez le calendrier, effectuez une recherche et gérez les créneaux.</p>
+        <p class="subtitle">Consultez l'historique des réservations, filtrez et gérez les créneaux horaires.</p>
     </div>
     <div class="action-wrap">
         <a href="/reservations/create" class="btn btn-primary">
@@ -24,11 +24,29 @@ foreach ($reservations as $r) {
     </div>
 </div>
 
-<div class="card filter-card">
-    <form method="GET" action="/reservations" class="filter-grid">
-        <div class="form-group" style="margin-bottom: 0;">
-            <label for="filter-salle" class="form-label" style="font-size: 0.8rem;">Filtrer par salle</label>
-            <select id="filter-salle" name="salle_id" class="form-control">
+<div class="page-stats-strip animate-in">
+    <div class="stat-chip">
+        <?= \App\View\Icons::calendar('icon-sm') ?>
+        <span>Total :</span>
+        <span class="stat-chip-num"><?= $totalRes ?></span>
+    </div>
+    <div class="stat-chip">
+        <?= \App\View\Icons::checkCircle('icon-sm text-success') ?>
+        <span>Confirmées :</span>
+        <span class="stat-chip-num"><?= $confirmees ?></span>
+    </div>
+    <div class="stat-chip">
+        <?= \App\View\Icons::xCircle('icon-sm text-danger') ?>
+        <span>Annulées :</span>
+        <span class="stat-chip-num"><?= $annulees ?></span>
+    </div>
+</div>
+
+<div class="card filter-card animate-in">
+    <form method="GET" action="/reservations" class="filter-toolbar">
+        <div class="filter-group">
+            <label for="filter-salle" class="filter-label">Salle</label>
+            <select id="filter-salle" name="salle_id" class="filter-control">
                 <option value="">Toutes les salles</option>
                 <?php foreach ($salles as $salle): ?>
                     <option value="<?= (int)$salle->id ?>" <?= ($criteres['salle_id'] ?? '') == $salle->id ? 'selected' : '' ?>>
@@ -38,32 +56,35 @@ foreach ($reservations as $r) {
             </select>
         </div>
 
-        <div class="form-group" style="margin-bottom: 0;">
-            <label for="statut" class="form-label" style="font-size: 0.8rem;">Statut</label>
-            <select id="statut" name="statut" class="form-control">
+        <div class="filter-group">
+            <label for="statut" class="filter-label">Statut</label>
+            <select id="statut" name="statut" class="filter-control">
                 <option value="">Tous les statuts</option>
                 <option value="confirmée" <?= ($criteres['statut'] ?? '') === 'confirmée' ? 'selected' : '' ?>>Confirmée</option>
                 <option value="annulée" <?= ($criteres['statut'] ?? '') === 'annulée' ? 'selected' : '' ?>>Annulée</option>
             </select>
         </div>
 
-        <div class="form-group" style="margin-bottom: 0;">
-            <label for="q" class="form-label" style="font-size: 0.8rem;">Responsable / Motif</label>
-            <input type="text" id="q" name="q" class="form-control" value="<?= htmlspecialchars($criteres['q'] ?? '') ?>" placeholder="ex: Nom, email ou motif...">
+        <div class="filter-group filter-search">
+            <label for="q" class="filter-label">Responsable / Motif</label>
+            <div class="filter-input-wrap">
+                <span class="input-icon"><?= \App\View\Icons::search('icon-sm') ?></span>
+                <input type="text" id="q" name="q" class="filter-control" value="<?= htmlspecialchars($criteres['q'] ?? '') ?>" placeholder="Nom, email ou motif...">
+            </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 0;">
-            <label for="date" class="form-label" style="font-size: 0.8rem;">Date du créneau</label>
-            <input type="date" id="date" name="date" class="form-control" value="<?= htmlspecialchars($criteres['date'] ?? '') ?>">
+        <div class="filter-group">
+            <label for="date" class="filter-label">Date du créneau</label>
+            <input type="date" id="date" name="date" class="filter-control" value="<?= htmlspecialchars($criteres['date'] ?? '') ?>">
         </div>
 
         <div class="filter-actions">
-            <button type="submit" class="btn btn-primary" style="height: 42px;">
+            <button type="submit" class="btn btn-primary" title="Appliquer les filtres">
                 <?= \App\View\Icons::filter('icon-sm') ?>
                 <span>Filtrer</span>
             </button>
             <?php if (!empty($queryParams)): ?>
-                <a href="/reservations" class="btn btn-outline" style="height: 42px;" title="Réinitialiser">
+                <a href="/reservations" class="btn btn-ghost" title="Réinitialiser les filtres">
                     <?= \App\View\Icons::refresh('icon-sm') ?>
                 </a>
             <?php endif; ?>
@@ -76,24 +97,23 @@ foreach ($reservations as $r) {
         <table class="data-table data-table-reservations">
             <thead>
                 <tr>
-                    <th>Identifiant</th>
+                    <th class="col-id">#</th>
                     <th>Salle réservée</th>
                     <th>Responsable</th>
                     <th>Motif</th>
-                    <th>Début</th>
-                    <th>Fin</th>
-                    <th>Statut</th>
-                    <th class="text-right">Actions</th>
+                    <th class="col-schedule">Créneau horaire</th>
+                    <th class="col-status">Statut</th>
+                    <th class="col-actions text-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($reservations)): ?>
                     <tr>
-                        <td colspan="8">
+                        <td colspan="7">
                             <div class="empty-state">
                                 <?= \App\View\Icons::calendar('empty-icon') ?>
                                 <p class="empty-text">Aucune réservation ne correspond aux critères sélectionnés.</p>
-                                <a href="/reservations" class="btn btn-sm btn-outline" style="margin-top: 1rem;">
+                                <a href="/reservations" class="btn btn-sm btn-outline">
                                     <span>Réinitialiser les filtres</span>
                                 </a>
                             </div>
@@ -101,38 +121,52 @@ foreach ($reservations as $r) {
                     </tr>
                 <?php else: ?>
                     <?php foreach ($reservations as $res): ?>
+                        <?php
+                        $dtDebut = $res->date_debut instanceof \DateTimeInterface ? $res->date_debut : new \DateTimeImmutable((string)$res->date_debut);
+                        $dtFin = $res->date_fin instanceof \DateTimeInterface ? $res->date_fin : new \DateTimeImmutable((string)$res->date_fin);
+                        $isSameDay = $dtDebut->format('Y-m-d') === $dtFin->format('Y-m-d');
+                        ?>
                         <tr>
                             <td>
                                 <span class="badge badge-secondary">#<?= (int)$res->id ?></span>
                             </td>
                             <td>
-                                <strong class="cell-room-title">
-                                    <a href="/salles/<?= (int)$res->salle_id ?>" class="row-highlight">
+                                <div class="cell-entity">
+                                    <a href="/salles/<?= (int)$res->salle_id ?>" class="cell-entity-title">
                                         <?= htmlspecialchars($res->salle->nom ?? 'Salle #' . $res->salle_id) ?>
                                     </a>
-                                </strong>
-                                <span class="cell-sub"><?= htmlspecialchars($res->salle->batiment ?? '') ?></span>
+                                    <span class="cell-entity-sub">
+                                        <?= \App\View\Icons::building('icon-xs') ?>
+                                        <?= htmlspecialchars($res->salle->batiment ?? '') ?>
+                                    </span>
+                                </div>
                             </td>
                             <td>
-                                <div class="cell-meta">
-                                    <span class="row-highlight"><?= htmlspecialchars($res->responsable) ?></span>
-                                    <span class="cell-sub"><?= htmlspecialchars($res->email) ?></span>
+                                <div class="cell-entity">
+                                    <span class="cell-entity-title"><?= htmlspecialchars($res->responsable) ?></span>
+                                    <span class="cell-entity-sub">
+                                        <?= \App\View\Icons::mail('icon-xs') ?>
+                                        <?= htmlspecialchars($res->email) ?>
+                                    </span>
                                 </div>
                             </td>
                             <td>
                                 <span class="cell-motif" title="<?= htmlspecialchars($res->motif) ?>"><?= htmlspecialchars($res->motif) ?></span>
                             </td>
-                            <td style="white-space: nowrap;">
-                                <span class="badge badge-secondary">
-                                    <?= \App\View\Icons::clock('icon-sm') ?>
-                                    <?= htmlspecialchars($res->date_debut instanceof \DateTimeInterface ? $res->date_debut->format('d/m/Y H:i') : (string)$res->date_debut) ?>
-                                </span>
-                            </td>
-                            <td style="white-space: nowrap;">
-                                <span class="badge badge-secondary">
-                                    <?= \App\View\Icons::clock('icon-sm') ?>
-                                    <?= htmlspecialchars($res->date_fin instanceof \DateTimeInterface ? $res->date_fin->format('d/m/Y H:i') : (string)$res->date_fin) ?>
-                                </span>
+                            <td>
+                                <div class="cell-schedule">
+                                    <span class="schedule-date">
+                                        <?= \App\View\Icons::calendar('icon-xs') ?>
+                                        <?= $dtDebut->format('d/m/Y') ?>
+                                    </span>
+                                    <span class="schedule-time">
+                                        <?= \App\View\Icons::clock('icon-xs') ?>
+                                        <?= $dtDebut->format('H:i') ?> → <?= $dtFin->format('H:i') ?>
+                                        <?php if (!$isSameDay): ?>
+                                            <span class="text-muted">(<?= $dtFin->format('d/m') ?>)</span>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
                             </td>
                             <td>
                                 <?php if ($res->statut === 'confirmée'): ?>
@@ -149,14 +183,14 @@ foreach ($reservations as $r) {
                             </td>
                             <td class="text-right">
                                 <div class="table-actions">
-                                    <a href="/reservations/<?= (int)$res->id ?>" class="btn btn-xs btn-outline" title="Détails">
+                                    <a href="/reservations/<?= (int)$res->id ?>" class="btn btn-xs btn-ghost" title="Détails de la réservation">
                                         <?= \App\View\Icons::eye('icon-sm') ?>
                                         <span>Détails</span>
                                     </a>
                                     <?php if ($res->statut === 'confirmée'): ?>
-                                        <form method="POST" action="/reservations/<?= (int)$res->id ?>/cancel" style="display:inline;">
+                                        <form method="POST" action="/reservations/<?= (int)$res->id ?>/cancel" class="table-actions">
                                             <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
-                                            <button type="submit" class="btn btn-xs btn-danger" title="Annuler">
+                                            <button type="submit" class="btn btn-xs btn-danger" title="Annuler cette réservation">
                                                 <?= \App\View\Icons::trash('icon-sm') ?>
                                                 <span>Annuler</span>
                                             </button>

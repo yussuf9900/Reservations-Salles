@@ -1,9 +1,9 @@
 <?php if (isset($paginator) && $paginator->lastPage() > 1): ?>
-    <div class="pagination-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div class="pagination-wrapper">
         <div class="text-sm text-muted">
             Affichage de <strong><?= count($paginator->items()) ?></strong> sur <strong><?= $paginator->total() ?></strong> résultats (Page <strong><?= $paginator->currentPage() ?></strong> / <strong><?= $paginator->lastPage() ?></strong>)
         </div>
-        <ul class="pagination" style="display: flex; list-style: none; gap: 0.35rem; margin: 0; padding: 0;">
+        <ul class="pagination">
             <?php
             $params = $queryParams ?? [];
             ?>

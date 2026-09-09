@@ -8,10 +8,12 @@
             <?= \App\View\Icons::arrowLeft('icon-sm') ?>
             <span>Retour</span>
         </a>
-        <a href="/salles/<?= (int)$salle->id ?>/edit" class="btn btn-secondary">
-            <?= \App\View\Icons::edit('icon-sm') ?>
-            <span>Modifier</span>
-        </a>
+        <?php if (!empty($isAdmin) || (!empty($currentUser) && $currentUser->isAdmin())): ?>
+            <a href="/salles/<?= (int)$salle->id ?>/edit" class="btn btn-secondary">
+                <?= \App\View\Icons::edit('icon-sm') ?>
+                <span>Modifier</span>
+            </a>
+        <?php endif; ?>
         <a href="/reservations/create?salle_id=<?= (int)$salle->id ?>" class="btn btn-primary">
             <?= \App\View\Icons::calendar('icon-sm') ?>
             <span>Réserver cette salle</span>
@@ -106,7 +108,7 @@
             <div class="empty-state">
                 <?= \App\View\Icons::calendar('empty-icon') ?>
                 <p class="empty-text">Aucun créneau réservé pour cette salle actuellement.</p>
-                <a href="/reservations/create?salle_id=<?= (int)$salle->id ?>" class="btn btn-sm btn-primary" style="margin-top: 1rem;">
+                <a href="/reservations/create?salle_id=<?= (int)$salle->id ?>" class="btn btn-sm btn-primary">
                     <?= \App\View\Icons::plus('icon-sm') ?>
                     <span>Réserver le premier créneau</span>
                 </a>
@@ -122,7 +124,7 @@
                                 </a>
                             </strong>
                             <span class="cell-sub"><?= htmlspecialchars($res->motif) ?></span>
-                            <span class="text-sm text-muted" style="margin-top: 0.2rem;">
+                            <span class="text-sm text-muted">
                                 <?= \App\View\Icons::clock('icon-sm') ?>
                                 <?= htmlspecialchars($res->date_debut->format('d/m/Y H:i')) ?> &rarr; <?= htmlspecialchars($res->date_fin->format('H:i')) ?>
                             </span>

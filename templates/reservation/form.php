@@ -22,7 +22,7 @@
             <select id="salle_id" name="salle_id" class="form-control" required>
                 <option value="">-- Choisir une salle disponible --</option>
                 <?php foreach ($salles as $salle): ?>
-                    <?php 
+                    <?php
                         $selectedId = (int)($old['salle_id'] ?? $salleIdSelectionnee ?? 0);
                     ?>
                     <option value="<?= (int)$salle->id ?>" <?= $selectedId === (int)$salle->id ? 'selected' : '' ?> <?= !$salle->active ? 'disabled' : '' ?>>
@@ -45,7 +45,7 @@
                     <?= \App\View\Icons::user('icon-sm') ?>
                     <span>Nom du responsable <span class="required">*</span></span>
                 </label>
-                <input type="text" id="responsable" name="responsable" class="form-control" 
+                <input type="text" id="responsable" name="responsable" class="form-control"
                        value="<?= htmlspecialchars($old['responsable'] ?? '') ?>" placeholder="Ex: Dr. Awa Ndiaye" required>
                 <?php if (isset($errors['responsable'])): ?>
                     <div class="field-error">
@@ -60,7 +60,7 @@
                     <?= \App\View\Icons::mail('icon-sm') ?>
                     <span>Email institutionnel <span class="required">*</span></span>
                 </label>
-                <input type="email" id="email" name="email" class="form-control" 
+                <input type="email" id="email" name="email" class="form-control"
                        value="<?= htmlspecialchars($old['email'] ?? '') ?>" placeholder="Ex: contact@universite.sn" required>
                 <?php if (isset($errors['email'])): ?>
                     <div class="field-error">
@@ -76,7 +76,7 @@
                 <?= \App\View\Icons::tag('icon-sm') ?>
                 <span>Motif de la réservation <span class="required">*</span></span>
             </label>
-            <textarea id="motif" name="motif" rows="3" class="form-control" 
+            <textarea id="motif" name="motif" rows="3" class="form-control"
                       placeholder="Précisez l'objet : cours, examen, séminaire ou atelier..." required><?= htmlspecialchars($old['motif'] ?? '') ?></textarea>
             <?php if (isset($errors['motif'])): ?>
                 <div class="field-error">
@@ -92,7 +92,7 @@
                     <?= \App\View\Icons::clock('icon-sm') ?>
                     <span>Début du créneau <span class="required">*</span></span>
                 </label>
-                <input type="datetime-local" id="date_debut" name="date_debut" class="form-control" 
+                <input type="datetime-local" id="date_debut" name="date_debut" class="form-control"
                        value="<?= htmlspecialchars($old['date_debut'] ?? '') ?>" required>
                 <?php if (isset($errors['date_debut'])): ?>
                     <div class="field-error">
@@ -107,7 +107,7 @@
                     <?= \App\View\Icons::clock('icon-sm') ?>
                     <span>Fin du créneau <span class="required">*</span></span>
                 </label>
-                <input type="datetime-local" id="date_fin" name="date_fin" class="form-control" 
+                <input type="datetime-local" id="date_fin" name="date_fin" class="form-control"
                        value="<?= htmlspecialchars($old['date_fin'] ?? '') ?>" required>
                 <?php if (isset($errors['date_fin'])): ?>
                     <div class="field-error">

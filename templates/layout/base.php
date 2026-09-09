@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($title) ? htmlspecialchars($title) . ' - ' : '' ?>UnivSalles - Gestion Universitaire</title>
+    <meta name="description" content="UnivSalles — Système de gestion et de réservation des salles universitaires. Consultez la disponibilité, réservez et administrez les espaces.">
+    <title><?= isset($title) ? htmlspecialchars($title) . ' — ' : '' ?>UnivSalles</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
@@ -16,7 +20,7 @@
                 <div class="brand-text">Univ<span>Salles</span></div>
             </a>
             <nav class="main-nav">
-                <ul style="display: flex; align-items: center; gap: 1rem; list-style: none; margin: 0; padding: 0;">
+                <ul>
                     <li>
                         <a href="/salles" class="nav-link">
                             <?= \App\View\Icons::building('icon-sm') ?>
@@ -42,19 +46,18 @@
                         </a>
                     </li>
                     <li>
-                        <div class="format-switcher" title="Format d'affichage des données (configurable via APP_RESPONSE_FORMAT dans .env)">
+                        <div class="format-switcher" title="Format d'affichage des données">
                             <a href="<?= htmlspecialchars($urlFormatHtml ?? '?format=html') ?>" class="format-pill <?= ($currentFormat ?? 'html') === 'html' ? 'active' : '' ?>">HTML</a>
                             <a href="<?= htmlspecialchars($urlFormatJson ?? '?format=json') ?>" class="format-pill <?= ($currentFormat ?? 'html') === 'json' ? 'active' : '' ?>">JSON</a>
                         </div>
                     </li>
-
-                    <li style="margin-left: 0.5rem; border-left: 1px solid var(--slate-200); padding-left: 1rem;">
+                    <li class="nav-separator">
                         <?php if (!empty($currentUser)): ?>
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <span class="badge" style="background: <?= $currentUser->role === 'admin' ? '#eff6ff' : '#f0fdf4' ?>; color: <?= $currentUser->role === 'admin' ? '#1d4ed8' : '#15803d' ?>; font-weight: 600;">
+                            <div class="user-info">
+                                <span class="badge badge-accent">
                                     <?= htmlspecialchars($currentUser->nom) ?> (<?= htmlspecialchars($currentUser->role) ?>)
                                 </span>
-                                <a href="/logout" class="nav-link" style="color: var(--danger); font-size: 0.85rem;" title="Déconnexion">
+                                <a href="/logout" class="nav-link nav-logout" title="Déconnexion">
                                     <?= \App\View\Icons::logOut('icon-sm') ?>
                                     <span>Quitter</span>
                                 </a>
@@ -92,8 +95,8 @@
 
     <footer class="app-footer">
         <div class="container footer-container">
-            <p>&copy; <?= date('Y') ?> Université - Système de Gestion des Salles</p>
-            <p class="text-sm text-muted">Architecture Modulaire &bull; PHP POO</p>
+            <p>&copy; <?= date('Y') ?> Université — Système de Gestion des Salles</p>
+            <p class="text-sm"><span class="footer-accent">Architecture Modulaire</span> &bull; PHP POO</p>
         </div>
     </footer>
 </body>
