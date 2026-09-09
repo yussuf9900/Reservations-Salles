@@ -57,7 +57,6 @@ $sallesInitiales = [
 echo "Début du peuplement de la base de données...\n";
 
 foreach ($sallesInitiales as $salleData) {
-    // Idempotence : updateOrCreate basé sur le nom pour éviter les doublons
     $salle = Salle::updateOrCreate(
         ['nom' => $salleData['nom']],
         $salleData
@@ -65,4 +64,27 @@ foreach ($sallesInitiales as $salleData) {
     echo "Salle synchronisée : [ID: {$salle->id}] {$salle->nom} ({$salle->capacite} places, {$salle->type})\n";
 }
 
-echo "Peuplement initial terminé avec succès (" . count($sallesInitiales) . " salles).\n";
+$utilisateursInitiaux = [
+    [
+        'nom'          => 'Administrateur Principal',
+        'email'        => 'admin@univ.sn',
+        'mot_de_passe' => password_hash('admin123', PASSWORD_BCRYPT),
+        'role'         => 'admin',
+    ],
+    [
+        'nom'          => 'Dr. Aïssatou Diallo',
+        'email'        => 'prof@univ.sn',
+        'mot_de_passe' => password_hash('prof123', PASSWORD_BCRYPT),
+        'role'         => 'responsable',
+    ],
+];
+
+foreach ($utilisateursInitiaux as $userData) {
+    $user = \App\Model\User::updateOrCreate(
+        ['email' => $userData['email']],
+        $userData
+    );
+    echo "Utilisateur synchronisé : [ID: {$user->id}] {$user->nom} ({$user->email}, {$user->role})\n";
+}
+
+echo "Peuplement initial terminé avec succès (" . count($sallesInitiales) . " salles, " . count($utilisateursInitiaux) . " utilisateurs).\n";

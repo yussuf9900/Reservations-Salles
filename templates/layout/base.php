@@ -16,7 +16,7 @@
                 <div class="brand-text">Univ<span>Salles</span></div>
             </a>
             <nav class="main-nav">
-                <ul>
+                <ul style="display: flex; align-items: center; gap: 1rem; list-style: none; margin: 0; padding: 0;">
                     <li>
                         <a href="/salles" class="nav-link">
                             <?= \App\View\Icons::building('icon-sm') ?>
@@ -30,10 +30,35 @@
                         </a>
                     </li>
                     <li>
+                        <a href="/dashboard" class="nav-link">
+                            <?= \App\View\Icons::barChart('icon-sm') ?>
+                            <span>Tableau de bord</span>
+                        </a>
+                    </li>
+                    <li>
                         <a href="/reservations/create" class="btn btn-sm btn-primary">
                             <?= \App\View\Icons::plus('icon-sm') ?>
                             <span>Réserver</span>
                         </a>
+                    </li>
+
+                    <li style="margin-left: 0.5rem; border-left: 1px solid var(--slate-200); padding-left: 1rem;">
+                        <?php if (!empty($currentUser)): ?>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span class="badge" style="background: <?= $currentUser->role === 'admin' ? '#eff6ff' : '#f0fdf4' ?>; color: <?= $currentUser->role === 'admin' ? '#1d4ed8' : '#15803d' ?>; font-weight: 600;">
+                                    <?= htmlspecialchars($currentUser->nom) ?> (<?= htmlspecialchars($currentUser->role) ?>)
+                                </span>
+                                <a href="/logout" class="nav-link" style="color: var(--danger); font-size: 0.85rem;" title="Déconnexion">
+                                    <?= \App\View\Icons::logOut('icon-sm') ?>
+                                    <span>Quitter</span>
+                                </a>
+                            </div>
+                        <?php else: ?>
+                            <a href="/login" class="nav-link">
+                                <?= \App\View\Icons::logIn('icon-sm') ?>
+                                <span>Connexion</span>
+                            </a>
+                        <?php endif; ?>
                     </li>
                 </ul>
             </nav>
