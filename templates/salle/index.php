@@ -1,23 +1,19 @@
 <?php
-$totalSalles = count($salles ?? []);
+$totalSalles = $paginator->total() ?? count($salles ?? []);
 $sallesActives = 0;
 $capaciteTotale = 0;
-$typesDistincts = [];
-
 foreach ($salles as $s) {
     if ($s->active) {
         $sallesActives++;
     }
     $capaciteTotale += (int)$s->capacite;
-    $typesDistincts[$s->type] = true;
 }
-$nbTypes = count($typesDistincts);
 ?>
 
 <div class="page-header animate-in">
     <div class="title-wrap">
         <h1>Gestion des Salles</h1>
-        <p class="subtitle">Consultez, administrez et visualisez l'état des salles universitaires.</p>
+        <p class="subtitle">Consultez, administrez et filtrez les salles universitaires.</p>
     </div>
     <div class="action-wrap">
         <a href="/salles/create" class="btn btn-primary">
@@ -27,43 +23,51 @@ $nbTypes = count($typesDistincts);
     </div>
 </div>
 
-<div class="stats-grid animate-in">
-    <div class="stat-card">
-        <div class="stat-icon blue">
-            <?= \App\View\Icons::building('icon-lg') ?>
+<div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem; background: #ffffff;">
+    <form method="GET" action="/salles" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 0.75rem; align-items: flex-end;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="q" class="form-label" style="font-size: 0.8rem;">Recherche (nom, bâtiment)</label>
+            <input type="text" id="q" name="q" class="form-control" value="<?= htmlspecialchars($criteres['q'] ?? '') ?>" placeholder="ex: Amphithéâtre, Bâtiment B...">
         </div>
-        <div class="stat-info">
-            <span class="stat-value"><?= $totalSalles ?></span>
-            <span class="stat-label">Total Salles</span>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="type" class="form-label" style="font-size: 0.8rem;">Type de salle</label>
+            <select id="type" name="type" class="form-control">
+                <option value="">Tous les types</option>
+                <option value="cours" <?= ($criteres['type'] ?? '') === 'cours' ? 'selected' : '' ?>>Cours</option>
+                <option value="informatique" <?= ($criteres['type'] ?? '') === 'informatique' ? 'selected' : '' ?>>Informatique</option>
+                <option value="laboratoire" <?= ($criteres['type'] ?? '') === 'laboratoire' ? 'selected' : '' ?>>Laboratoire</option>
+                <option value="amphitheatre" <?= ($criteres['type'] ?? '') === 'amphitheatre' ? 'selected' : '' ?>>Amphithéâtre</option>
+                <option value="reunion" <?= ($criteres['type'] ?? '') === 'reunion' ? 'selected' : '' ?>>Réunion</option>
+            </select>
         </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon green">
-            <?= \App\View\Icons::checkCircle('icon-lg') ?>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="capacite_min" class="form-label" style="font-size: 0.8rem;">Capacité minimale</label>
+            <input type="number" id="capacite_min" name="capacite_min" class="form-control" min="1" value="<?= htmlspecialchars((string)($criteres['capacite_min'] ?? '')) ?>" placeholder="ex: 30">
         </div>
-        <div class="stat-info">
-            <span class="stat-value"><?= $sallesActives ?></span>
-            <span class="stat-label">Salles Actives</span>
+
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="active" class="form-label" style="font-size: 0.8rem;">Disponibilité</label>
+            <select id="active" name="active" class="form-control">
+                <option value="">Toutes</option>
+                <option value="1" <?= ($criteres['active'] ?? '') === '1' ? 'selected' : '' ?>>Actives uniquement</option>
+                <option value="0" <?= ($criteres['active'] ?? '') === '0' ? 'selected' : '' ?>>Inactives</option>
+            </select>
         </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon amber">
-            <?= \App\View\Icons::users('icon-lg') ?>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary" style="height: 42px;">
+                <?= \App\View\Icons::filter('icon-sm') ?>
+                <span>Filtrer</span>
+            </button>
+            <?php if (!empty($queryParams)): ?>
+                <a href="/salles" class="btn btn-outline" style="height: 42px;" title="Réinitialiser">
+                    <?= \App\View\Icons::refresh('icon-sm') ?>
+                </a>
+            <?php endif; ?>
         </div>
-        <div class="stat-info">
-            <span class="stat-value"><?= number_format($capaciteTotale, 0, ',', ' ') ?></span>
-            <span class="stat-label">Capacité Totale</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon slate">
-            <?= \App\View\Icons::tag('icon-lg') ?>
-        </div>
-        <div class="stat-info">
-            <span class="stat-value"><?= $nbTypes ?></span>
-            <span class="stat-label">Types d'Espaces</span>
-        </div>
-    </div>
+    </form>
 </div>
 
 <div class="card table-card animate-in">
@@ -86,10 +90,9 @@ $nbTypes = count($typesDistincts);
                         <td colspan="7">
                             <div class="empty-state">
                                 <?= \App\View\Icons::building('empty-icon') ?>
-                                <p class="empty-text">Aucune salle universitaire enregistrée dans le système.</p>
-                                <a href="/salles/create" class="btn btn-sm btn-primary" style="margin-top: 1rem;">
-                                    <?= \App\View\Icons::plus('icon-sm') ?>
-                                    <span>Ajouter la première salle</span>
+                                <p class="empty-text">Aucune salle ne correspond aux critères de recherche.</p>
+                                <a href="/salles" class="btn btn-sm btn-outline" style="margin-top: 1rem;">
+                                    <span>Réinitialiser les filtres</span>
                                 </a>
                             </div>
                         </td>
@@ -156,4 +159,6 @@ $nbTypes = count($typesDistincts);
             </tbody>
         </table>
     </div>
+
+    <?php require dirname(__DIR__) . '/shared/pagination.php'; ?>
 </div>

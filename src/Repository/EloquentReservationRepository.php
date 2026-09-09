@@ -5,21 +5,16 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Model\Reservation;
+use App\Pagination\Paginator;
 use DateTimeInterface;
 
 class EloquentReservationRepository implements ReservationRepositoryInterface
 {
-    /**
-     * @return array<Reservation>
-     */
     public function all(): array
     {
         return Reservation::with('salle')->orderBy('date_debut', 'desc')->get()->all();
     }
 
-    /**
-     * @return array<Reservation>
-     */
     public function findBySalle(int $salleId): array
     {
         return Reservation::with('salle')
@@ -50,11 +45,6 @@ class EloquentReservationRepository implements ReservationRepositoryInterface
         return $reservation->save();
     }
 
-    /**
-     * Deux réservations se chevauchent lorsque :
-     * nouveauDebut < reservationExistante.dateFin ET nouvelleFin > reservationExistante.dateDebut
-     * Les réservations annulées ne bloquent plus la salle.
-     */
     public function trouverConflit(
         int $salleId,
         DateTimeInterface $debut,
@@ -71,5 +61,40 @@ class EloquentReservationRepository implements ReservationRepositoryInterface
         }
 
         return $query->first();
+    }
+
+    public function search(array $criteres = [], int $page = 1, int $perPage = 8): Paginator
+    {
+        $query = Reservation::with('salle');
+
+        if (!empty($criteres['salle_id']) && is_numeric($criteres['salle_id'])) {
+            $query->where('salle_id', (int)$criteres['salle_id']);
+        }
+
+        if (!empty($criteres['statut'])) {
+            $query->where('statut', $criteres['statut']);
+        }
+
+        if (!empty($criteres['q'])) {
+            $q = '%' . trim((string)$criteres['q']) . '%';
+            $query->where(function ($sub) use ($q) {
+                $sub->where('responsable', 'like', $q)
+                    ->orWhere('email', 'like', $q)
+                    ->orWhere('motif', 'like', $q);
+            });
+        }
+
+        if (!empty($criteres['date'])) {
+            $query->whereDate('date_debut', $criteres['date']);
+        }
+
+        $total = $query->count();
+        $items = $query->orderBy('date_debut', 'desc')
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage)
+            ->get()
+            ->all();
+
+        return new Paginator($items, $total, $perPage, $page);
     }
 }
