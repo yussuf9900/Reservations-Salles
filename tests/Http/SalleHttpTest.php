@@ -38,4 +38,106 @@ class SalleHttpTest extends HttpTestCase
         $this->assertArrayHasKey('data', $json);
         $this->assertArrayHasKey('meta', $json);
     }
+
+    public function testAdminCanAccessEditPageAndHasValidCsrfToken(): void
+    {
+        $_SESSION['user_id'] = 1;
+
+        $res = $this->request('GET', '/salles/1/edit');
+
+        $this->assertSame(200, $res['status']);
+        $this->assertStringContainsString('Modifier la salle', $res['body']);
+        $token = $this->csrf->getToken();
+        $this->assertStringContainsString('value="' . $token . '"', $res['body']);
+    }
+
+    public function testAdminCanUpdateSalleSuccessfully(): void
+    {
+        $_SESSION['user_id'] = 1;
+        $token = $this->csrf->getToken();
+
+        $res = $this->request('POST', '/salles/1/edit', [
+            '_token'   => $token,
+            'nom'      => 'Salle 101 Modifiee',
+            'batiment' => 'Batiment B',
+            'capacite' => 55,
+            'type'     => 'cours',
+            'active'   => '1',
+        ]);
+
+        $this->assertSame(302, $res['status']);
+        $salle = $this->salleRepo->findById(1);
+        $this->assertNotNull($salle);
+        $this->assertSame('Salle 101 Modifiee', $salle->nom);
+        $this->assertSame('Batiment B', $salle->batiment);
+        $this->assertSame(55, $salle->capacite);
+        $this->assertTrue($salle->active);
+    }
+
+    public function testAdminCanDeactivateSalle(): void
+    {
+        $_SESSION['user_id'] = 1;
+        $token = $this->csrf->getToken();
+
+        $res = $this->request('POST', '/salles/1/edit', [
+            '_token'   => $token,
+            'nom'      => 'Salle 101',
+            'batiment' => 'Batiment A',
+            'capacite' => 40,
+            'type'     => 'cours',
+            'active'   => '0',
+        ]);
+
+        $this->assertSame(302, $res['status']);
+        $salle = $this->salleRepo->findById(1);
+        $this->assertNotNull($salle);
+        $this->assertFalse($salle->active);
+    }
+
+    public function testGuestCannotAccessEditPageRedirectsToLogin(): void
+    {
+        $res = $this->request('GET', '/salles/1/edit');
+
+        $this->assertSame(302, $res['status']);
+    }
+
+    public function testNonAdminCannotAccessEditPageReturns403(): void
+    {
+        $_SESSION['user_id'] = 2; // responsable
+
+        $res = $this->request('GET', '/salles/1/edit');
+
+        $this->assertSame(403, $res['status']);
+        $this->assertStringContainsString('Accès Refusé', $res['body']);
+    }
+
+    public function testGuestCannotPostSallesRedirectsToLogin(): void
+    {
+        $token = $this->csrf->getToken();
+        $res = $this->request('POST', '/salles', [
+            '_token'   => $token,
+            'nom'      => 'Nouvelle Salle Pirate',
+            'batiment' => 'Batiment X',
+            'capacite' => 30,
+            'type'     => 'cours',
+        ]);
+
+        $this->assertSame(302, $res['status']);
+    }
+
+    public function testUpdateSalleWithInvalidCsrfReturns403(): void
+    {
+        $_SESSION['user_id'] = 1;
+
+        $res = $this->request('POST', '/salles/1/edit', [
+            '_token'   => 'token-invalide',
+            'nom'      => 'Salle 101 Hacked',
+            'batiment' => 'Batiment A',
+            'capacite' => 40,
+            'type'     => 'cours',
+        ]);
+
+        $this->assertSame(403, $res['status']);
+        $this->assertStringContainsString('CSRF', $res['body']);
+    }
 }
