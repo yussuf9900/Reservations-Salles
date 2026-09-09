@@ -4,6 +4,12 @@
         <p class="subtitle">Vue d'ensemble de l'utilisation et de la fréquentation des salles</p>
     </div>
     <div class="action-wrap">
+        <?php if (!empty($currentUser) && $currentUser->isAdmin()): ?>
+            <a href="http://localhost:<?= htmlspecialchars((string)($_ENV['PMA_PORT'] ?? getenv('PMA_PORT') ?: '8081')) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline" title="Gérer la base de données via phpMyAdmin">
+                <?= \App\View\Icons::database('icon-sm') ?>
+                <span>phpMyAdmin (BDD)</span>
+            </a>
+        <?php endif; ?>
         <a href="/reservations/create" class="btn btn-primary">
             <?= \App\View\Icons::plus('icon-sm') ?>
             <span>Nouvelle Réservation</span>

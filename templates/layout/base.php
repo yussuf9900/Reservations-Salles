@@ -21,38 +21,40 @@
             </a>
             <nav class="main-nav">
                 <ul>
-                    <li>
-                        <a href="/salles" class="nav-link">
-                            <?= \App\View\Icons::building('icon-sm') ?>
-                            <span>Salles</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/reservations" class="nav-link">
-                            <?= \App\View\Icons::calendar('icon-sm') ?>
-                            <span>Réservations</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/dashboard" class="nav-link">
-                            <?= \App\View\Icons::barChart('icon-sm') ?>
-                            <span>Tableau de bord</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/reservations/create" class="btn btn-sm btn-primary">
-                            <?= \App\View\Icons::plus('icon-sm') ?>
-                            <span>Réserver</span>
-                        </a>
-                    </li>
+                    <?php if (!empty($currentUser)): ?>
+                        <li>
+                            <a href="/salles" class="nav-link">
+                                <?= \App\View\Icons::building('icon-sm') ?>
+                                <span>Salles</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/reservations" class="nav-link">
+                                <?= \App\View\Icons::calendar('icon-sm') ?>
+                                <span>Réservations</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/dashboard" class="nav-link">
+                                <?= \App\View\Icons::barChart('icon-sm') ?>
+                                <span>Tableau de bord</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/reservations/create" class="btn btn-sm btn-primary">
+                                <?= \App\View\Icons::plus('icon-sm') ?>
+                                <span>Réserver</span>
+                            </a>
+                        </li>
+                    <?php endif; ?>
                     <li>
                         <div class="format-switcher" title="Format d'affichage des données">
                             <a href="<?= htmlspecialchars($urlFormatHtml ?? '?format=html') ?>" class="format-pill <?= ($currentFormat ?? 'html') === 'html' ? 'active' : '' ?>">HTML</a>
                             <a href="<?= htmlspecialchars($urlFormatJson ?? '?format=json') ?>" class="format-pill <?= ($currentFormat ?? 'html') === 'json' ? 'active' : '' ?>">JSON</a>
                         </div>
                     </li>
-                    <li class="nav-separator">
-                        <?php if (!empty($currentUser)): ?>
+                    <?php if (!empty($currentUser)): ?>
+                        <li class="nav-separator">
                             <div class="user-info">
                                 <span class="badge badge-accent">
                                     <?= htmlspecialchars($currentUser->nom) ?> (<?= htmlspecialchars($currentUser->role) ?>)
@@ -62,13 +64,8 @@
                                     <span>Quitter</span>
                                 </a>
                             </div>
-                        <?php else: ?>
-                            <a href="/login" class="nav-link">
-                                <?= \App\View\Icons::logIn('icon-sm') ?>
-                                <span>Connexion</span>
-                            </a>
-                        <?php endif; ?>
-                    </li>
+                        </li>
+                    <?php endif; ?>
                 </ul>
             </nav>
         </div>
