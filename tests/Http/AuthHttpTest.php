@@ -49,11 +49,42 @@ class AuthHttpTest extends HttpTestCase
         $this->assertFalse($this->auth->check());
     }
 
-    public function testDashboardReturns200(): void
+    public function testDashboardReturns200WhenLoggedIn(): void
     {
+        $this->loginAsAdmin();
         $res = $this->request('GET', '/dashboard');
 
         $this->assertSame(200, $res['status']);
         $this->assertStringContainsString('Tableau de Bord', $res['body']);
+        $this->assertStringContainsString('phpMyAdmin (BDD)', $res['body']);
+    }
+
+    public function testDashboardWithoutLoginRedirectsToLogin(): void
+    {
+        $res = $this->request('GET', '/dashboard');
+
+        $this->assertSame(302, $res['status']);
+    }
+
+    public function testQuickLoginRedirectsToSpecifiedTarget(): void
+    {
+        $token = $this->csrf->getToken();
+        $this->request('POST', '/login/quick', [
+            '_token'   => $token,
+            'role'     => 'responsable',
+            'redirect' => '/salles',
+        ]);
+
+        $this->assertSame(2, $_SESSION['user_id'] ?? null);
+    }
+
+    public function testLoginFormHidesNavigationTabsWhenUnauthenticated(): void
+    {
+        $res = $this->request('GET', '/login');
+
+        $this->assertSame(200, $res['status']);
+        $this->assertStringNotContainsString('<span>Tableau de bord</span>', $res['body']);
+        $this->assertStringNotContainsString('<span>Réservations</span>', $res['body']);
+        $this->assertStringNotContainsString('<span>Réserver</span>', $res['body']);
     }
 }

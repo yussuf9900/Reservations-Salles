@@ -6,16 +6,32 @@ namespace Tests\Http;
 
 class SalleHttpTest extends HttpTestCase
 {
-    public function testGetSallesReturns200(): void
+    public function testGetSallesReturns200WhenLoggedIn(): void
     {
+        $this->loginAsResponsable();
         $res = $this->request('GET', '/salles');
 
         $this->assertSame(200, $res['status']);
         $this->assertStringContainsString('Salle 101', $res['body']);
     }
 
+    public function testGuestAccessingSallesRedirectsToLogin(): void
+    {
+        $res = $this->request('GET', '/salles');
+
+        $this->assertSame(302, $res['status']);
+    }
+
+    public function testGuestAccessingSalleDetailRedirectsToLogin(): void
+    {
+        $res = $this->request('GET', '/salles/1');
+
+        $this->assertSame(302, $res['status']);
+    }
+
     public function testGetSalleNotFoundReturns404(): void
     {
+        $this->loginAsAdmin();
         $res = $this->request('GET', '/salles/99999');
 
         $this->assertSame(404, $res['status']);
@@ -23,6 +39,7 @@ class SalleHttpTest extends HttpTestCase
 
     public function testMethodNotAllowedReturns405(): void
     {
+        $this->loginAsAdmin();
         $res = $this->request('DELETE', '/salles');
 
         $this->assertSame(405, $res['status']);

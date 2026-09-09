@@ -8,6 +8,7 @@ class CsrfHttpTest extends HttpTestCase
 {
     public function testPostWithoutCsrfTokenReturns403(): void
     {
+        $this->loginAsAdmin();
         $res = $this->request('POST', '/salles', [
             'nom'      => 'Salle Illégale',
             'batiment' => 'Batiment X',
