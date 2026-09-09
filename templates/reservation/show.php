@@ -8,7 +8,10 @@
             <?= \App\View\Icons::arrowLeft('icon-sm') ?>
             <span>Retour à la liste</span>
         </a>
-        <?php if ($reservation->statut === 'confirmée'): ?>
+        <?php 
+            $canCancelUser = $canCancel ?? ($isAdmin ?? false);
+        ?>
+        <?php if ($reservation->statut === 'confirmée' && $canCancelUser): ?>
             <form method="POST" action="/reservations/<?= (int)$reservation->id ?>/cancel">
                 <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
                 <button type="submit" class="btn btn-danger">

@@ -183,4 +183,19 @@ abstract class HttpTestCase extends TestCase
             'body'   => $body,
         ];
     }
+
+    protected function loginAsAdmin(): void
+    {
+        $_SESSION['user_id'] = 1;
+    }
+
+    protected function loginAsResponsable(): void
+    {
+        $_SESSION['user_id'] = 2;
+    }
+
+    protected function logoutUser(): void
+    {
+        unset($_SESSION['user_id']);
+    }
 }

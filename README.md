@@ -228,6 +228,12 @@ Toutes les pages de l'application peuvent être rendues en format HTML tradition
 - **Commutateur dans l'interface** : un badge interactif dans la barre de navigation permet de basculer instantanément entre HTML et JSON.
 - **Réponse JSON normalisée** : contient `success: true`, `format: "json"`, `view: string` et le payload de données sérialisé sous `data: { ... }`.
 
+### 9. Administration de la Base de Données (phpMyAdmin)
+L'infrastructure conteneurisée inclut une instance officielle de **phpMyAdmin** prête à l'emploi :
+- **URL d'accès** : `http://localhost:8081` (configurable via `PMA_PORT` dans `.env`).
+- **Connexion simplifiée** : serveur `database`, utilisateur `root`, mot de passe vide.
+- **Raccourci Administrateur** : un bouton d'accès direct vers phpMyAdmin est présent dans le Tableau de Bord (`/dashboard`) pour les administrateurs connectés.
+
 ---
 
 ## Exécution de la Suite de Tests

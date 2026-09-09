@@ -69,11 +69,16 @@ class ReservationController
             return $this->view->render('error/404', ['title' => 'Réservation introuvable']);
         }
 
+        $currentUser = $this->auth->user();
+        $canCancel = $this->auth->isAdmin() || ($currentUser !== null && ($reservation->email === $currentUser->email || $reservation->responsable === $currentUser->nom));
+
         return $this->view->render('reservation/show', [
             'title'       => 'Réservation #' . $reservation->id,
             'reservation' => $reservation,
             'csrf_token'  => $this->csrf->getToken(),
             'isAdmin'     => $this->auth->isAdmin(),
+            'currentUser' => $currentUser,
+            'canCancel'   => $canCancel,
         ]);
     }
 
@@ -101,6 +106,11 @@ class ReservationController
     public function store(): string
     {
         $data = $_POST;
+        $currentUser = $this->auth->user();
+        if ($currentUser !== null) {
+            $data['responsable'] = $currentUser->nom;
+            $data['email'] = $currentUser->email;
+        }
 
         $result = $this->validator->validate($data);
 
@@ -150,8 +160,29 @@ class ReservationController
         return '';
     }
 
-    public function cancel(int $id): void
+    public function cancel(int $id): string
     {
+        $currentUser = $this->auth->user();
+        $reservation = $this->reservations->findById($id);
+
+        if ($reservation === null) {
+            $this->view->setFlash('error', "La réservation #{$id} est introuvable.");
+            header('Location: /reservations');
+            if (!defined('PHPUNIT_RUNNING')) {
+                exit;
+            }
+            return '';
+        }
+
+        if (!$this->auth->isAdmin() && $currentUser !== null && $reservation->email !== $currentUser->email && $reservation->responsable !== $currentUser->nom) {
+            http_response_code(403);
+            return $this->view->render('error/403', [
+                'title'          => 'Accès Refusé',
+                'message'        => 'Vous ne disposez pas des autorisations requises pour annuler la réservation d\'un autre utilisateur.',
+                'allowedMethods' => ['Seul le responsable propriétaire ou un administrateur peut annuler ce dossier.'],
+            ]);
+        }
+
         try {
             $this->annulerReservationService->execute($id);
             $this->view->setFlash('success', "La réservation #{$id} a été annulée avec succès.");
@@ -163,5 +194,6 @@ class ReservationController
         if (!defined('PHPUNIT_RUNNING')) {
             exit;
         }
+        return '';
     }
 }

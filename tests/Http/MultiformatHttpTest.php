@@ -11,6 +11,7 @@ class MultiformatHttpTest extends HttpTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->loginAsAdmin();
         $this->originalEnvFormat = $_ENV['APP_RESPONSE_FORMAT'] ?? null;
         $_ENV['APP_RESPONSE_FORMAT'] = 'html';
     }
@@ -23,6 +24,18 @@ class MultiformatHttpTest extends HttpTestCase
             unset($_ENV['APP_RESPONSE_FORMAT']);
         }
         parent::tearDown();
+    }
+
+    public function testUnauthenticatedWithFormatJsonReturns401(): void
+    {
+        $this->logoutUser();
+        $res = $this->request('GET', '/salles?format=json');
+
+        $this->assertSame(401, $res['status']);
+        $json = json_decode($res['body'], true);
+        $this->assertIsArray($json);
+        $this->assertTrue($json['error']);
+        $this->assertStringContainsString('Authentification requise', $json['message']);
     }
 
     public function testDefaultFormatIsHtml(): void

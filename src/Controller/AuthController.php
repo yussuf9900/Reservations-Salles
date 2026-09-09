@@ -27,11 +27,14 @@ class AuthController
             return '';
         }
 
+        $redirect = (string)($_GET['redirect'] ?? '');
+
         return $this->view->render('auth/login', [
             'title'      => 'Connexion',
             'csrf_token' => $this->csrf->getToken(),
             'old_email'  => '',
             'error'      => null,
+            'redirect'   => $redirect,
         ]);
     }
 
@@ -39,13 +42,14 @@ class AuthController
     {
         $email = trim((string)($_POST['email'] ?? ''));
         $password = (string)($_POST['password'] ?? '');
+        $redirect = (string)($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
         if ($this->auth->login($email, $password)) {
             $user = $this->auth->user();
             $this->view->setFlash('success', "Bienvenue, {$user->nom}.");
 
-            $redirect = $_GET['redirect'] ?? ($this->auth->isAdmin() ? '/dashboard' : '/reservations');
-            header('Location: ' . $redirect);
+            $target = $this->resolveRedirect($redirect, $this->auth->isAdmin());
+            header('Location: ' . $target);
             if (!defined('PHPUNIT_RUNNING')) {
                 exit;
             }
@@ -57,6 +61,7 @@ class AuthController
             'csrf_token' => $this->csrf->getToken(),
             'old_email'  => $email,
             'error'      => 'Identifiants incorrects. Veuillez vérifier votre adresse courriel et votre mot de passe.',
+            'redirect'   => $redirect,
         ]);
     }
 
@@ -67,12 +72,14 @@ class AuthController
             $role = 'responsable';
         }
 
+        $redirect = (string)($_POST['redirect'] ?? $_GET['redirect'] ?? '');
+
         if ($this->auth->loginAs($role)) {
             $user = $this->auth->user();
             $this->view->setFlash('success', "Connexion rapide réussie en tant que {$user->nom} ({$role}).");
 
-            $redirect = $role === 'admin' ? '/dashboard' : '/reservations';
-            header('Location: ' . $redirect);
+            $target = $this->resolveRedirect($redirect, $role === 'admin');
+            header('Location: ' . $target);
             if (!defined('PHPUNIT_RUNNING')) {
                 exit;
             }
@@ -84,6 +91,22 @@ class AuthController
         if (!defined('PHPUNIT_RUNNING')) {
             exit;
         }
+    }
+
+    private function resolveRedirect(?string $redirect, bool $isAdmin): string
+    {
+        if (
+            $redirect !== null &&
+            $redirect !== '' &&
+            str_starts_with($redirect, '/') &&
+            !str_starts_with($redirect, '//') &&
+            !str_starts_with($redirect, '/login') &&
+            !str_starts_with($redirect, '/logout')
+        ) {
+            return $redirect;
+        }
+
+        return $isAdmin ? '/dashboard' : '/salles';
     }
 
     public function logout(): void
