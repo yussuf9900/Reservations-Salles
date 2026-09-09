@@ -221,14 +221,21 @@ Endpoints disponibles sous le préfixe `/api/` :
 - `POST /api/reservations/{id}/cancel` : annulation d'une réservation.
 - `GET /api/stats` : exportation des données du tableau de bord.
 
+### 8. Rendu Multiformat Unifié (HTML / JSON)
+Toutes les pages de l'application peuvent être rendues en format HTML traditionnel ou en format JSON structuré :
+- **Configuration globale via `.env`** : `APP_RESPONSE_FORMAT=html` (défaut) ou `APP_RESPONSE_FORMAT=json`.
+- **Surcharge à la volée via l'URL** : ajoutez `?format=json` ou `?format=html` sur n'importe quelle page (`/salles?format=json`, `/reservations?format=json`).
+- **Commutateur dans l'interface** : un badge interactif dans la barre de navigation permet de basculer instantanément entre HTML et JSON.
+- **Réponse JSON normalisée** : contient `success: true`, `format: "json"`, `view: string` et le payload de données sérialisé sous `data: { ... }`.
+
 ---
 
 ## Exécution de la Suite de Tests
 
-Pour lancer l'ensemble des 50 tests automatisés (tests unitaires métier, validation de formulaires, composants de pagination/CSRF/statistiques et tests fonctionnels HTTP) :
+Pour lancer l'ensemble des 61 tests automatisés (tests unitaires métier, validation de formulaires, composants de pagination/CSRF/statistiques, tests fonctionnels HTTP et tests multiformat) :
 
 ```bash
-./vendor/bin/phpunit tests/Unit tests/Http --testdox
+./vendor/bin/phpunit --testdox
 ```
 
 > *Les tests unitaires et HTTP utilisent des doublures en mémoire (`InMemorySalleRepository`, `InMemoryReservationRepository`) et s'exécutent instantanément sans aucune dépendance obligatoire à un serveur MySQL actif.*

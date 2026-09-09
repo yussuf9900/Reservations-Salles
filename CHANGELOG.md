@@ -2,6 +2,20 @@
 
 Toutes les modifications notables apportées à ce projet sont documentées dans ce fichier selon les recommandations [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [v1.2.0] - 2026-09-09
+### Corrigé
+- Élimination complète des débordements horizontaux (overflow) sur mobile et desktop dans la liste des salles (`/salles`) et la liste des réservations (`/reservations`).
+- Application de `min-width: 0; width: 100%` sur les conteneurs flex (`.container`, `.main-content`) pour neutraliser le débordement causé par les tables de données.
+- Amélioration responsive des tableaux avec `.cell-motif` (troncature avec infobulle native), retour à la ligne automatique des métadonnées et des adresses email (`.cell-meta .cell-sub`), et badges temporels sans rupture inopinée (`white-space: nowrap`).
+- Réorganisation responsive des formulaires de filtrage en grilles CSS adaptatives (`.filter-grid`, `.filter-card`).
+
+### Ajouté
+- Support du rendu multiformat unifié (HTML / JSON) configurable globalement via `APP_RESPONSE_FORMAT=html|json` dans le `.env` ou surchargé à la volée via le paramètre d'URL `?format=json` ou `?format=html`.
+- Sérialisation automatique et robuste dans `ViewRenderer` des modèles Eloquent, paginators et collections vers du JSON structuré (`format`, `view`, `data`).
+- Commutateur visuel de format (badge "Format : HTML | JSON") dans la barre de navigation pour un basculement immédiat.
+- Gestion unifiée des erreurs 404, 405 et 500 retournant un JSON normalisé lorsque le format JSON est sélectionné.
+- Suite de tests complète pour le multiformat (`Tests\Http\MultiformatHttpTest`), portant la couverture totale à 61 tests et 193 assertions réussis à 100%.
+
 ## [v1.1.1] - 2026-09-09
 ### Corrige
 - Decouplage du port MySQL hote (`FORWARD_DB_PORT`) et du port interne Docker (`DB_PORT=3306`) dans `docker-compose.yml` et `docker-compose.hub.yml` pour eviter tout conflit de port 3306 sur la machine hote.
