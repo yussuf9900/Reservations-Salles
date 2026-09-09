@@ -15,8 +15,11 @@
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="/login" class="auth-form">
+        <form method="POST" action="/login<?= !empty($redirect) ? '?redirect=' . urlencode($redirect) : '' ?>" class="auth-form">
             <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
+            <?php if (!empty($redirect)): ?>
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>">
+            <?php endif; ?>
 
             <div class="form-group">
                 <label for="email" class="form-label">Adresse courriel</label>
@@ -40,18 +43,24 @@
         </div>
 
         <div class="auth-quick-buttons">
-            <form method="POST" action="/login/quick">
+            <form method="POST" action="/login/quick<?= !empty($redirect) ? '?redirect=' . urlencode($redirect) : '' ?>">
                 <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
                 <input type="hidden" name="role" value="admin">
+                <?php if (!empty($redirect)): ?>
+                    <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>">
+                <?php endif; ?>
                 <button type="submit" class="btn auth-quick-btn">
                     <?= \App\View\Icons::checkCircle('icon-sm') ?>
                     <span>Connexion Rapide : Administrateur</span>
                 </button>
             </form>
 
-            <form method="POST" action="/login/quick">
+            <form method="POST" action="/login/quick<?= !empty($redirect) ? '?redirect=' . urlencode($redirect) : '' ?>">
                 <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
                 <input type="hidden" name="role" value="responsable">
+                <?php if (!empty($redirect)): ?>
+                    <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>">
+                <?php endif; ?>
                 <button type="submit" class="btn auth-quick-btn">
                     <?= \App\View\Icons::checkCircle('icon-sm') ?>
                     <span>Connexion Rapide : Responsable</span>
