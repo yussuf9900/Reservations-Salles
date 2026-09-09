@@ -65,10 +65,18 @@ ou via le script dédié :
 ./docker-run.sh
 ```
 
-- **Application Web** : accessible sur **http://localhost:8080**
-- **Base MySQL** : accessible sur **127.0.0.1:3306** (utilisateur `root`, sans mot de passe)
+- **Application Web** : accessible sur **http://localhost:8080** (personnalisable via `APP_PORT` dans `.env`)
+- **Base MySQL** : accessible sur **127.0.0.1:3306** (personnalisable via `FORWARD_DB_PORT` dans `.env`, utilisateur `root`, sans mot de passe)
 - Les migrations (`php youssou:migrate`) et le jeu de données initial (`php youssou:seed`) s'exécutent automatiquement au démarrage.
 - Toutes les données sont conservées durablement dans le volume Docker `db_data`.
+
+##### En cas de conflit de ports sur la machine hôte :
+Si le port `3306` (MySQL local) ou `8080` est déjà utilisé sur votre machine, modifiez simplement les ports exposés dans votre fichier `.env` :
+```env
+APP_PORT=8081
+FORWARD_DB_PORT=3307
+```
+> **Remarque importante :** Dans Docker, le port d'écoute interne du conteneur MySQL reste toujours `3306`. `FORWARD_DB_PORT` configure uniquement le port d'accès depuis votre machine hôte, sans perturber la communication interne entre l'application PHP et la base de données.
 
 ---
 

@@ -6,6 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/vendor/autoload.php';
 
 use App\Model\Salle;
+use App\Model\User;
 
 $initDb = require __DIR__ . '/config/database.php';
 $capsule = $initDb();
@@ -64,5 +65,28 @@ foreach ($sallesInitiales as $salleData) {
     fwrite(STDOUT, "[SEED] Salle synchronisee : " . $salle->nom . " (" . $salle->capacite . " places, " . $salle->type . ")\n");
 }
 
-fwrite(STDOUT, "[SUCCES] Peuplement initial termine avec succes (" . count($sallesInitiales) . " salles).\n");
+$utilisateursInitiaux = [
+    [
+        'nom'          => 'Administrateur Principal',
+        'email'        => 'admin@univ.sn',
+        'mot_de_passe' => password_hash('admin123', PASSWORD_BCRYPT),
+        'role'         => 'admin',
+    ],
+    [
+        'nom'          => 'Dr. Aïssatou Diallo',
+        'email'        => 'prof@univ.sn',
+        'mot_de_passe' => password_hash('prof123', PASSWORD_BCRYPT),
+        'role'         => 'responsable',
+    ],
+];
+
+foreach ($utilisateursInitiaux as $userData) {
+    $user = User::updateOrCreate(
+        ['email' => $userData['email']],
+        $userData
+    );
+    fwrite(STDOUT, "[SEED] Utilisateur synchronise : [ID: {$user->id}] {$user->nom} ({$user->email}, {$user->role})\n");
+}
+
+fwrite(STDOUT, "[SUCCES] Peuplement initial termine avec succes (" . count($sallesInitiales) . " salles, " . count($utilisateursInitiaux) . " utilisateurs).\n");
 exit(0);

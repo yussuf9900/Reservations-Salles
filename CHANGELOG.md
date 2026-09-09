@@ -2,6 +2,13 @@
 
 Toutes les modifications notables apportées à ce projet sont documentées dans ce fichier selon les recommandations [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [v1.1.1] - 2026-09-09
+### Corrige
+- Decouplage du port MySQL hote (`FORWARD_DB_PORT`) et du port interne Docker (`DB_PORT=3306`) dans `docker-compose.yml` et `docker-compose.hub.yml` pour eviter tout conflit de port 3306 sur la machine hote.
+- Support de `APP_PORT` parametrable pour l'exposition web dans `docker-compose.yml`, `docker-run.sh` et `docker-run-hub.sh`.
+- Resolution robuste des variables d'environnement dans `config/database.php` combinant `$_ENV` et `getenv()`.
+- Inclusion de la migration `03_create_users_table.php` et du peuplement des utilisateurs initiaux dans le CLI `youssou:migrate` et `youssou:seed`.
+
 ## [v1.1.0] - 2026-09-09
 ### Ajoute
 - Authentification securisee avec hachage bcrypt, gestion de session et controle d'acces base sur les roles (RBAC: Admin, Responsable).
