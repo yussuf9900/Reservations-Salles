@@ -170,30 +170,60 @@ Rendez-vous ensuite sur votre navigateur à l'adresse :
 
 ---
 
+## Fonctionnalités Bonus (Partie 14)
+
+L'application intègre l'ensemble des 14 fonctionnalités et optimisations prévues par le sujet pédagogique :
+
+### 1. Authentification & Rôles
+- Authentification par session avec mots de passe hachés via `PASSWORD_BCRYPT`.
+- Deux rôles préconfigurés :
+  - **Administrateur** : `admin@univ.sn` / mot de passe : `admin123` (gestion complète des salles, modifications, dashboard).
+  - **Responsable** : `prof@univ.sn` / mot de passe : `prof123` (consultation et réservation simplifiée avec auto-complétion).
+
+### 2. Boutons d'Authentification Rapide
+Sur la page `/login`, deux boutons permettent de se connecter immédiatement en un clic en tant qu'Administrateur ou Responsable pour faciliter les démonstrations sans saisie manuelle.
+
+### 3. Tableau de Bord & Statistiques (`/dashboard`)
+- Vue analytique complète : total des salles, réservations actives, volume horaire et taux de fréquentation.
+- **Top 5 des salles les plus utilisées** : classement ordonné par nombre de créneaux et cumul d'heures réelles d'occupation.
+- Répartition par type de salle et affichage prévisionnel des 5 prochaines réservations à venir.
+
+### 4. Recherche Multicritère & Pagination
+- Sur `/salles` : filtre textuel (nom/bâtiment), filtre par type, seuil de capacité minimale et statut d'activité.
+- Sur `/reservations` : filtre par salle, par statut (confirmée/annulée), par mot-clé (responsable/motif) et par date de créneau.
+- Pagination paramétrable (`App\Pagination\Paginator`) avec conservation des paramètres de filtrage actifs.
+
+### 5. Sécurité & Middlewares
+- **Prévention CSRF** : génération de jetons de session cryptographiques et validation sur chaque requête POST web.
+- **Pipeline de Middlewares** : `LoggingMiddleware`, `CsrfMiddleware`, `AuthMiddleware` orchestrés dans `Application`.
+- **Journalisation structurée** : enregistrement de chaque action et anomalie dans `storage/logs/app.log`.
+
+### 6. Concurrence & Transactions ACID
+- Encapsulation des réservations et annulations dans des transactions de base de données.
+- Verrouillage transactionnel pessimiste (`SELECT ... FOR UPDATE`) sur la salle lors de la création pour empêcher deux réservations simultanées conflictuelles.
+
+### 7. API JSON REST
+Endpoints disponibles sous le préfixe `/api/` :
+- `GET /api/salles` : liste paginée et filtrée des salles.
+- `GET /api/salles/{id}` : détail d'une salle avec liste de ses réservations.
+- `POST /api/salles` : création d'une salle (retourne 201 Created ou 422).
+- `GET /api/reservations` : liste paginée et filtrée des réservations.
+- `GET /api/reservations/{id}` : détail d'une réservation.
+- `POST /api/reservations` : création d'une réservation avec détection de conflit (201 ou 422).
+- `POST /api/reservations/{id}/cancel` : annulation d'une réservation.
+- `GET /api/stats` : exportation des données du tableau de bord.
+
+---
+
 ## Exécution de la Suite de Tests
 
-Pour lancer l'ensemble des 17 tests (unitaires, validation et intégration) :
+Pour lancer l'ensemble des 50 tests automatisés (tests unitaires métier, validation de formulaires, composants de pagination/CSRF/statistiques et tests fonctionnels HTTP) :
 
 ```bash
-./vendor/bin/phpunit --testdox
+./vendor/bin/phpunit tests/Unit tests/Http --testdox
 ```
 
-### Détail de la couverture des tests :
-- **Tests unitaires du service métier** :
-  1. Réservation valide confirmée
-  2. Salle inexistante refusée
-  3. Salle inactive refusée
-  4. Date de fin antérieure au début refusée
-  5. Durée supérieure à 4 heures refusée
-  6. Date passée refusée
-  7. Conflit de chevauchement refusé
-  8. Réservations voisines contiguës acceptées
-- **Tests unitaires de validation** :
-  - Email invalide, responsable vide, capacité négative, type inconnu, date incorrecte
-- **Tests d'intégration Eloquent** :
-  - Création de salle, relations Modèle, recherche de chevauchement SQL et annulation
-
-> *Les tests unitaires utilisent des doublures en mémoire (`InMemorySalleRepository`, `InMemoryReservationRepository`) et s'exécutent instantanément sans aucune dépendance à MySQL.*
+> *Les tests unitaires et HTTP utilisent des doublures en mémoire (`InMemorySalleRepository`, `InMemoryReservationRepository`) et s'exécutent instantanément sans aucune dépendance obligatoire à un serveur MySQL actif.*
 
 ---
 
@@ -201,42 +231,60 @@ Pour lancer l'ensemble des 17 tests (unitaires, validation et intégration) :
 
 ```
 ReservationSalleUniversite/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                # Intégration continue GitHub Actions (PHP 8.2 & 8.3)
+│       └── docker-publish.yml    # Publication conteneurs Docker Hub
 ├── config/
-│   ├── container.php         # Définitions PHP-DI (autowiring, factories)
-│   └── database.php          # Configuration Capsule\Manager Eloquent
+│   ├── container.php             # Définitions PHP-DI (autowiring, middlewares, factories)
+│   └── database.php              # Configuration Capsule\Manager Eloquent
 ├── database/
-│   ├── migrations/           # Définitions des tables DDL
-│   ├── migrate.php           # Script d'exécution des migrations
-│   └── seed.php              # Seeder des 5 salles initiales (idempotent)
+│   ├── migrations/               # Salles, réservations, utilisateurs
+│   ├── migrate.php               # Exécuteur séquentiel des migrations
+│   └── seed.php                  # Données initiales idempotentes (salles et comptes test)
 ├── public/
 │   ├── assets/
-│   │   └── style.css         # Feuille de style moderne et responsive
-│   └── index.php             # Point d'entrée HTTP unique (Front Controller)
+│   │   └── style.css             # Feuille de style moderne et responsive
+│   └── index.php                 # Point d'entrée HTTP unique (Front Controller)
 ├── routes/
-│   └── web.php               # Déclaration des routes (FastRoute)
+│   └── web.php                   # Déclaration des routes Web et API (FastRoute)
 ├── src/
-│   ├── Application.php       # Chef d'orchestre HTTP et dispatching
-│   ├── Controller/           # SalleController, ReservationController
-│   ├── DTO/                  # CreerSalleDTO, CreerReservationDTO
-│   ├── Exception/            # SalleIndisponibleException, ReservationIntrouvableException
-│   ├── Model/                # Modèles Eloquent Salle et Reservation
-│   ├── Repository/           # Interfaces et implémentations Eloquent
-│   ├── Service/              # Services de création et d'annulation métier
-│   ├── Validation/           # Validateurs Respect\Validation et ValidationResult
-│   └── View/                 # ViewRenderer avec layout, escape et flash
+│   ├── Application.php           # Pipeline de middlewares et routeur HTTP
+│   ├── Controller/               # Contrôleurs Web et sous-dossier Api/
+│   │   ├── Api/                  # ApiSalleController, ApiReservationController, ApiDashboardController
+│   │   ├── AuthController.php    # Connexion standard et boutons d'authentification rapide
+│   │   ├── DashboardController.php
+│   │   ├── ReservationController.php
+│   │   └── SalleController.php
+│   ├── DTO/                      # DTOs et Builders typés
+│   ├── Http/                     # JsonResponse normalisée
+│   ├── Middleware/               # LoggingMiddleware, CsrfMiddleware, AuthMiddleware
+│   ├── Model/                    # Modèles Eloquent Salle, Reservation, User
+│   ├── Pagination/               # Paginator générique
+│   ├── Repository/               # Interfaces et implémentations Eloquent
+│   ├── Service/                  # AuthService, CsrfService, LoggerService, StatistiquesService
+│   ├── Validation/               # Validateurs Respect\Validation et ValidationResult
+│   └── View/                     # ViewRenderer avec layout, helpers et icônes vectorielles SVG
+├── storage/
+│   └── logs/                     # Journal d'application horodaté (app.log)
 ├── templates/
-│   ├── error/                # 404, 405, 500
-│   ├── layout/               # base.php
-│   ├── reservation/          # index.php, show.php, form.php
-│   └── salle/                # index.php, show.php, form.php
+│   ├── auth/                     # login.php (avec boutons rapides)
+│   ├── dashboard/                # index.php (métriques et top 5 salles)
+│   ├── error/                    # 404, 405, 500
+│   ├── layout/                   # base.php
+│   ├── reservation/              # index.php, show.php, form.php
+│   ├── salle/                    # index.php, show.php, form.php
+│   └── shared/                   # pagination.php
 ├── tests/
-│   ├── Double/               # Doublures mémoire InMemoryRepository
-│   ├── Integration/          # Tests d'intégration avec base Eloquent
-│   ├── Unit/                 # Tests unitaires métier et validation
-│   └── bootstrap.php         # Bootstrap PHPUnit sans dépendance MySQL
-├── ARCHITECTURE.md           # Étude théorique et réponses aux questions
-├── CHANGELOG.md              # Journal des versions et évolutions
-├── composer.json             # Dépendances et PSR-4
-├── docker-compose.yml        # Service MySQL 8.0
-└── README.md                 # Ce document
+│   ├── Double/                   # Doublures en mémoire (InMemoryRepository)
+│   ├── Http/                     # Tests fonctionnels HTTP (Salles, Réservations, Auth, CSRF, API)
+│   ├── Integration/              # Tests d'intégration Eloquent
+│   ├── Unit/                     # Tests unitaires métier, validation, CSRF, pagination, stats
+│   └── bootstrap.php             # Bootstrap PHPUnit autonome
+├── ARCHITECTURE.md               # Étude théorique des 14 concepts et des 14 bonus
+├── CHANGELOG.md                  # Journal des versions
+├── composer.json                 # Dépendances et PSR-4
+├── docker-compose.yml            # Environnement complet conteneurisé
+└── README.md                     # Ce document
 ```
+
