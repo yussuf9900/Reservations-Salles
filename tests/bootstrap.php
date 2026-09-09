@@ -8,7 +8,10 @@ use Illuminate\Database\ConnectionResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\MySqlConnection;
 
-// Configurer une fausse connexion pour les modèles Eloquent en mémoire (sans MySQL)
+if (!defined('PHPUNIT_RUNNING')) {
+    define('PHPUNIT_RUNNING', true);
+}
+
 $resolver = new ConnectionResolver([
     'default' => new MySqlConnection(function () {
         return new class {

@@ -6,11 +6,6 @@ namespace App\Validation;
 
 class ValidationResult
 {
-    /**
-     * @param bool $valid
-     * @param array<string, string> $errors
-     * @param array<string, mixed> $data
-     */
     public function __construct(
         private readonly bool $valid,
         private readonly array $errors = [],
