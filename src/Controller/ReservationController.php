@@ -26,8 +26,8 @@ class ReservationController
         private readonly CreerReservationService $creerReservationService,
         private readonly AnnulerReservationService $annulerReservationService,
         private readonly ViewRenderer $view,
-        private readonly ?CsrfService $csrf = null,
-        private readonly ?AuthService $auth = null
+        private readonly CsrfService $csrf,
+        private readonly AuthService $auth
     ) {
     }
 
@@ -56,7 +56,8 @@ class ReservationController
             'baseUrl'             => '/reservations',
             'salles'              => $this->salles->all(),
             'salleIdSelectionnee' => $criteres['salle_id'] !== '' ? (int)$criteres['salle_id'] : null,
-            'isAdmin'             => $this->auth?->isAdmin() ?? false,
+            'csrf_token'          => $this->csrf->getToken(),
+            'isAdmin'             => $this->auth->isAdmin(),
         ]);
     }
 
@@ -71,15 +72,15 @@ class ReservationController
         return $this->view->render('reservation/show', [
             'title'       => 'Réservation #' . $reservation->id,
             'reservation' => $reservation,
-            'csrf_token'  => $this->csrf?->getToken() ?? '',
-            'isAdmin'     => $this->auth?->isAdmin() ?? false,
+            'csrf_token'  => $this->csrf->getToken(),
+            'isAdmin'     => $this->auth->isAdmin(),
         ]);
     }
 
     public function create(): string
     {
         $salleId = isset($_GET['salle_id']) && is_numeric($_GET['salle_id']) ? (int)$_GET['salle_id'] : null;
-        $currentUser = $this->auth?->user();
+        $currentUser = $this->auth->user();
 
         $old = $salleId ? ['salle_id' => $salleId] : [];
         if ($currentUser !== null) {
@@ -93,7 +94,7 @@ class ReservationController
             'salleIdSelectionnee' => $salleId,
             'old'                 => $old,
             'errors'              => [],
-            'csrf_token'          => $this->csrf?->getToken() ?? '',
+            'csrf_token'          => $this->csrf->getToken(),
         ]);
     }
 
@@ -110,7 +111,7 @@ class ReservationController
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
                 'old'                 => $data,
                 'errors'              => $result->errors(),
-                'csrf_token'          => $this->csrf?->getToken() ?? '',
+                'csrf_token'          => $this->csrf->getToken(),
             ]);
         }
 
@@ -123,7 +124,7 @@ class ReservationController
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
                 'old'                 => $data,
                 'errors'              => ['date_debut' => $e->getMessage()],
-                'csrf_token'          => $this->csrf?->getToken() ?? '',
+                'csrf_token'          => $this->csrf->getToken(),
             ]);
         }
 
@@ -137,7 +138,7 @@ class ReservationController
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
                 'old'                 => $data,
                 'errors'              => ['general' => $e->getMessage()],
-                'csrf_token'          => $this->csrf?->getToken() ?? '',
+                'csrf_token'          => $this->csrf->getToken(),
             ]);
         }
 

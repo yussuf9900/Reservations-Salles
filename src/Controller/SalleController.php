@@ -18,8 +18,8 @@ class SalleController
         private readonly SalleRepositoryInterface $salles,
         private readonly SalleValidator $validator,
         private readonly ViewRenderer $view,
-        private readonly ?CsrfService $csrf = null,
-        private readonly ?AuthService $auth = null
+        private readonly CsrfService $csrf,
+        private readonly AuthService $auth
     ) {
     }
 
@@ -48,7 +48,7 @@ class SalleController
             'criteres'    => $criteres,
             'queryParams' => $queryParams,
             'baseUrl'     => '/salles',
-            'isAdmin'     => $this->auth?->isAdmin() ?? false,
+            'isAdmin'     => $this->auth->isAdmin(),
         ]);
     }
 
@@ -63,7 +63,7 @@ class SalleController
         return $this->view->render('salle/show', [
             'title'   => 'Détail de la salle : ' . $salle->nom,
             'salle'   => $salle,
-            'isAdmin' => $this->auth?->isAdmin() ?? false,
+            'isAdmin' => $this->auth->isAdmin(),
         ]);
     }
 
@@ -73,13 +73,16 @@ class SalleController
             'title'      => 'Ajouter une salle',
             'old'        => [],
             'errors'     => [],
-            'csrf_token' => $this->csrf?->getToken() ?? '',
+            'csrf_token' => $this->csrf->getToken(),
         ]);
     }
 
     public function store(): string
     {
         $data = $_POST;
+        if (!isset($data['active'])) {
+            $data['active'] = false;
+        }
 
         $result = $this->validator->validate($data);
 
@@ -88,7 +91,7 @@ class SalleController
                 'title'      => 'Ajouter une salle',
                 'old'        => $data,
                 'errors'     => $result->errors(),
-                'csrf_token' => $this->csrf?->getToken() ?? '',
+                'csrf_token' => $this->csrf->getToken(),
             ]);
         }
 
@@ -131,7 +134,7 @@ class SalleController
                 'active'   => $salle->active,
             ],
             'errors'     => [],
-            'csrf_token' => $this->csrf?->getToken() ?? '',
+            'csrf_token' => $this->csrf->getToken(),
         ]);
     }
 
@@ -144,6 +147,10 @@ class SalleController
         }
 
         $data = $_POST;
+        if (!isset($data['active'])) {
+            $data['active'] = false;
+        }
+
         $result = $this->validator->validate($data);
 
         if (!$result->isValid()) {
@@ -152,7 +159,7 @@ class SalleController
                 'salle'      => $salle,
                 'old'        => $data,
                 'errors'     => $result->errors(),
-                'csrf_token' => $this->csrf?->getToken() ?? '',
+                'csrf_token' => $this->csrf->getToken(),
             ]);
         }
 
