@@ -19,8 +19,8 @@
                 <?= \App\View\Icons::building('icon-sm') ?>
                 <span>Nom de la salle <span class="required">*</span></span>
             </label>
-            <input type="text" id="nom" name="nom" class="form-control" 
-                   value="<?= htmlspecialchars($old['nom'] ?? $salle->nom ?? '') ?>" 
+            <input type="text" id="nom" name="nom" class="form-control"
+                   value="<?= htmlspecialchars($old['nom'] ?? $salle->nom ?? '') ?>"
                    placeholder="Ex: Amphithéâtre A, Salle B12..." required>
             <?php if (isset($errors['nom'])): ?>
                 <div class="field-error">
@@ -35,8 +35,8 @@
                 <?= \App\View\Icons::building('icon-sm') ?>
                 <span>Bâtiment <span class="required">*</span></span>
             </label>
-            <input type="text" id="batiment" name="batiment" class="form-control" 
-                   value="<?= htmlspecialchars($old['batiment'] ?? $salle->batiment ?? '') ?>" 
+            <input type="text" id="batiment" name="batiment" class="form-control"
+                   value="<?= htmlspecialchars($old['batiment'] ?? $salle->batiment ?? '') ?>"
                    placeholder="Ex: Bâtiment Sciences, Bâtiment Administratif..." required>
             <?php if (isset($errors['batiment'])): ?>
                 <div class="field-error">
@@ -52,7 +52,7 @@
                     <?= \App\View\Icons::users('icon-sm') ?>
                     <span>Capacité (personnes) <span class="required">*</span></span>
                 </label>
-                <input type="number" id="capacite" name="capacite" min="1" max="1000" class="form-control" 
+                <input type="number" id="capacite" name="capacite" min="1" max="1000" class="form-control"
                        value="<?= htmlspecialchars((string)($old['capacite'] ?? $salle->capacite ?? '30')) ?>" required>
                 <?php if (isset($errors['capacite'])): ?>
                     <div class="field-error">
@@ -85,9 +85,10 @@
         </div>
 
         <div class="checkbox-group">
-            <?php 
-                $isActive = isset($old['active']) ? (bool)$old['active'] : ($salle->active ?? true);
+            <?php
+                $isActive = isset($old['active']) ? filter_var($old['active'], FILTER_VALIDATE_BOOLEAN) : (isset($salle) ? (bool)$salle->active : true);
             ?>
+            <input type="hidden" name="active" value="0">
             <label class="checkbox-label">
                 <input type="checkbox" name="active" value="1" <?= $isActive ? 'checked' : '' ?>>
                 <span>Salle active (disponible pour les réservations)</span>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\View;
 
 use App\Model\User;
+use App\Service\CsrfService;
 use DateTimeInterface;
 use Illuminate\Contracts\Support\Arrayable;
 use RuntimeException;
@@ -13,8 +14,10 @@ class ViewRenderer
 {
     private string $templateDir;
 
-    public function __construct(?string $templateDir = null)
-    {
+    public function __construct(
+        private readonly ?CsrfService $csrf = null,
+        ?string $templateDir = null
+    ) {
         $this->templateDir = $templateDir ?? dirname(__DIR__, 2) . '/templates';
         if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
             session_start();
@@ -90,8 +93,8 @@ class ViewRenderer
             }
         }
 
-        if (!isset($data['csrf_token'])) {
-            $data['csrf_token'] = $_SESSION['_csrf_token'] ?? '';
+        if (empty($data['csrf_token'])) {
+            $data['csrf_token'] = $this->csrf?->getToken() ?? ($_SESSION['_csrf_token'] ?? '');
         }
 
         $content = $this->renderViewOnly($view, $data);
