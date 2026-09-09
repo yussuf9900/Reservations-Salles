@@ -41,6 +41,12 @@
                             <span>Réserver</span>
                         </a>
                     </li>
+                    <li>
+                        <div class="format-switcher" title="Format d'affichage des données (configurable via APP_RESPONSE_FORMAT dans .env)">
+                            <a href="<?= htmlspecialchars($urlFormatHtml ?? '?format=html') ?>" class="format-pill <?= ($currentFormat ?? 'html') === 'html' ? 'active' : '' ?>">HTML</a>
+                            <a href="<?= htmlspecialchars($urlFormatJson ?? '?format=json') ?>" class="format-pill <?= ($currentFormat ?? 'html') === 'json' ? 'active' : '' ?>">JSON</a>
+                        </div>
+                    </li>
 
                     <li style="margin-left: 0.5rem; border-left: 1px solid var(--slate-200); padding-left: 1rem;">
                         <?php if (!empty($currentUser)): ?>

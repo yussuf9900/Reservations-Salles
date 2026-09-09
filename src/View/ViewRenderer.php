@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\View;
 
 use App\Model\User;
+use DateTimeInterface;
+use Illuminate\Contracts\Support\Arrayable;
 use RuntimeException;
 
 class ViewRenderer
@@ -24,6 +26,27 @@ class ViewRenderer
         return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
+    public function getRequestedFormat(): string
+    {
+        if (isset($_GET['format'])) {
+            $format = strtolower(trim((string)$_GET['format']));
+            if (in_array($format, ['json', 'html'], true)) {
+                return $format;
+            }
+        }
+
+        if (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json') && !str_contains($_SERVER['HTTP_ACCEPT'], 'text/html')) {
+            return 'json';
+        }
+
+        $envFormat = strtolower(trim((string)($_ENV['APP_RESPONSE_FORMAT'] ?? getenv('APP_RESPONSE_FORMAT') ?: 'html')));
+        if ($envFormat === 'json') {
+            return 'json';
+        }
+
+        return 'html';
+    }
+
     public function setFlash(string $type, string $message): void
     {
         $_SESSION['flash'][$type][] = $message;
@@ -38,6 +61,23 @@ class ViewRenderer
 
     public function render(string $view, array $data = [], string $layout = 'layout/base'): string
     {
+        $format = $this->getRequestedFormat();
+
+        if ($format === 'json') {
+            if (!headers_sent()) {
+                header('Content-Type: application/json; charset=utf-8');
+            }
+            return (string)json_encode(
+                $this->normalizeDataForJson($view, $data),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
+        }
+
+        $data['currentFormat'] = 'html';
+        $queryParams = $_GET ?? [];
+        $data['urlFormatHtml'] = '?' . http_build_query(array_merge($queryParams, ['format' => 'html']));
+        $data['urlFormatJson'] = '?' . http_build_query(array_merge($queryParams, ['format' => 'json']));
+
         $data['flashes'] = $this->getFlashes();
 
         if (!isset($data['currentUser']) && !empty($_SESSION['user_id'])) {
@@ -62,6 +102,47 @@ class ViewRenderer
 
         $data['content'] = $content;
         return $this->renderViewOnly($layout, $data);
+    }
+
+    private function normalizeDataForJson(string $view, array $data): array
+    {
+        $excludedKeys = ['flashes', 'csrf_token', 'currentUser', 'content', 'isAdmin', 'salleIdSelectionnee', 'queryParams', 'baseUrl'];
+        $clean = [];
+
+        foreach ($data as $key => $val) {
+            if (in_array($key, $excludedKeys, true)) {
+                continue;
+            }
+            $clean[$key] = $this->transformValue($val);
+        }
+
+        return [
+            'success' => true,
+            'format'  => 'json',
+            'view'    => $view,
+            'data'    => $clean,
+        ];
+    }
+
+    private function transformValue(mixed $value): mixed
+    {
+        if ($value instanceof Arrayable || method_exists($value, 'toArray')) {
+            return $this->transformValue($value->toArray());
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('c');
+        }
+
+        if (is_array($value)) {
+            $transformed = [];
+            foreach ($value as $k => $v) {
+                $transformed[$k] = $this->transformValue($v);
+            }
+            return $transformed;
+        }
+
+        return $value;
     }
 
     private function renderViewOnly(string $view, array $data): string

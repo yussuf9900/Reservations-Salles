@@ -54,7 +54,7 @@ class Application
         } catch (Throwable $e) {
             http_response_code(500);
 
-            if (str_starts_with($uri, '/api/')) {
+            if (str_starts_with($uri, '/api/') || $this->view->getRequestedFormat() === 'json') {
                 return JsonResponse::error($e->getMessage(), 500);
             }
 
@@ -88,7 +88,7 @@ class Application
         switch ($routeInfo[0]) {
             case Dispatcher::NOT_FOUND:
                 http_response_code(404);
-                if (str_starts_with($uri, '/api/')) {
+                if (str_starts_with($uri, '/api/') || $this->view->getRequestedFormat() === 'json') {
                     return JsonResponse::notFound();
                 }
                 return $this->view->render('error/404', ['title' => 'Page introuvable']);
@@ -98,7 +98,7 @@ class Application
                 http_response_code(405);
                 header('Allow: ' . implode(', ', $allowedMethods));
 
-                if (str_starts_with($uri, '/api/')) {
+                if (str_starts_with($uri, '/api/') || $this->view->getRequestedFormat() === 'json') {
                     return JsonResponse::error('Méthode non autorisée', 405, ['allowed' => $allowedMethods]);
                 }
 
