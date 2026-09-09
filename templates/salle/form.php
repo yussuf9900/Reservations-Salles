@@ -13,6 +13,7 @@
 
 <div class="card form-card animate-in">
     <form method="POST" action="<?= isset($salle) ? '/salles/' . (int)$salle->id . '/edit' : '/salles' ?>">
+        <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
         <div class="form-group <?= isset($errors['nom']) ? 'has-error' : '' ?>">
             <label for="nom">
                 <?= \App\View\Icons::building('icon-sm') ?>

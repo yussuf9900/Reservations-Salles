@@ -10,6 +10,7 @@
         </a>
         <?php if ($reservation->statut === 'confirmée'): ?>
             <form method="POST" action="/reservations/<?= (int)$reservation->id ?>/cancel" style="display:inline;">
+                <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
                 <button type="submit" class="btn btn-danger">
                     <?= \App\View\Icons::trash('icon-sm') ?>
                     <span>Annuler cette réservation</span>

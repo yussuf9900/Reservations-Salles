@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\View;
 
+use App\Model\User;
+use RuntimeException;
+
 class ViewRenderer
 {
     private string $templateDir;
@@ -16,26 +19,16 @@ class ViewRenderer
         }
     }
 
-    /**
-     * Échappe les chaînes HTML contre les attaques XSS
-     */
     public static function e(?string $value): string
     {
         return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
-    /**
-     * Ajoute un message flash en session
-     */
     public function setFlash(string $type, string $message): void
     {
         $_SESSION['flash'][$type][] = $message;
     }
 
-    /**
-     * Récupère et vide les messages flash
-     * @return array<string, array<string>>
-     */
     public function getFlashes(): array
     {
         $flashes = $_SESSION['flash'] ?? [];
@@ -43,26 +36,30 @@ class ViewRenderer
         return $flashes;
     }
 
-    /**
-     * Rendu d'une vue dans le layout principal
-     *
-     * @param string $view Chemin relatif du template sans .php (ex: 'salle/index')
-     * @param array<string, mixed> $data Données transmises au template
-     * @param string $layout Layout à utiliser (défaut 'layout/base')
-     */
     public function render(string $view, array $data = [], string $layout = 'layout/base'): string
     {
         $data['flashes'] = $this->getFlashes();
 
-        // Rendre la vue spécifique
+        if (!isset($data['currentUser']) && !empty($_SESSION['user_id'])) {
+            try {
+                if (class_exists(User::class)) {
+                    $data['currentUser'] = User::find((int)$_SESSION['user_id']);
+                }
+            } catch (\Throwable) {
+                $data['currentUser'] = null;
+            }
+        }
+
+        if (!isset($data['csrf_token'])) {
+            $data['csrf_token'] = $_SESSION['_csrf_token'] ?? '';
+        }
+
         $content = $this->renderViewOnly($view, $data);
 
-        // Si aucun layout n'est demandé
         if ($layout === '') {
             return $content;
         }
 
-        // Rendre dans le layout
         $data['content'] = $content;
         return $this->renderViewOnly($layout, $data);
     }
@@ -72,13 +69,11 @@ class ViewRenderer
         $file = $this->templateDir . '/' . ltrim($view, '/') . '.php';
 
         if (!file_exists($file)) {
-            throw new \RuntimeException("Fichier de vue introuvable : {$file}");
+            throw new RuntimeException("Fichier de vue introuvable : {$file}");
         }
 
-        // Extrait les variables pour la vue
         extract($data, EXTR_SKIP);
 
-        // Helper disponible dans les vues
         $e = fn(?string $val) => self::e($val);
 
         ob_start();
