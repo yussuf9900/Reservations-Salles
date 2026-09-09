@@ -32,9 +32,6 @@ class Salle extends Model
         'reunion',
     ];
 
-    /**
-     * Relation : Une salle possède plusieurs réservations
-     */
     public function reservations(): HasMany
     {
         return $this->hasMany(Reservation::class, 'salle_id');
