@@ -126,12 +126,20 @@ class ViewRenderer
 
     private function transformValue(mixed $value): mixed
     {
-        if ($value instanceof Arrayable || method_exists($value, 'toArray')) {
-            return $this->transformValue($value->toArray());
-        }
+        if (is_object($value)) {
+            if ($value instanceof Arrayable || method_exists($value, 'toArray')) {
+                return $this->transformValue($value->toArray());
+            }
 
-        if ($value instanceof DateTimeInterface) {
-            return $value->format('c');
+            if ($value instanceof DateTimeInterface) {
+                return $value->format('c');
+            }
+
+            if ($value instanceof \JsonSerializable) {
+                return $this->transformValue($value->jsonSerialize());
+            }
+
+            return get_object_vars($value);
         }
 
         if (is_array($value)) {

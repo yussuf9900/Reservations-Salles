@@ -163,12 +163,16 @@ abstract class HttpTestCase extends TestCase
             'REQUEST_URI'    => $uri,
             'REMOTE_ADDR'    => '127.0.0.1',
         ], $server);
+        $parsed = parse_url($uri);
+        parse_str($parsed['query'] ?? '', $query);
+        $_GET = $query;
         $_POST = $post;
+        $path = $parsed['path'] ?? '/';
 
         http_response_code(200);
 
         ob_start();
-        $response = $this->app->handle(strtoupper($method), $uri);
+        $response = $this->app->handle(strtoupper($method), $path);
         $output = ob_get_clean();
 
         $body = is_string($response) ? $response : (string)$output;
