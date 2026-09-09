@@ -2,6 +2,22 @@
 
 Toutes les modifications notables apportées à ce projet sont documentées dans ce fichier selon les recommandations [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [v1.1.0] - 2026-09-09
+### Ajoute
+- Authentification securisee avec hachage bcrypt, gestion de session et controle d'acces base sur les roles (RBAC: Admin, Responsable).
+- Boutons de connexion rapide sur la page de connexion pour basculer en un clic entre les profils Administrateur et Responsable.
+- Protection CSRF synchronizer token avec jetons cryptographiques de 32 octets, validation en temps constant et inclusion dans tous les formulaires POST.
+- Gestion de la concurrence avec transactions ACID et verrouillage pessimiste lockForUpdate lors de la creation et de l'annulation des reservations.
+- Recherche multi-criteres pour les salles (nom, type, capacite minimale) et pour les reservations (salle, statut, responsable).
+- Pagination parametree avec la classe Paginator, navigation accessible et conservation des criteres de filtrage dans les URLs.
+- Tableau de bord de supervision (/dashboard) avec indicateurs cles (KPIs), top 5 des salles les plus sollicitees, repartition par type et prochaines reservations.
+- API REST JSON complete (/api/salles, /api/reservations, /api/dashboard) avec negociation de contenu, pagination et gestion des erreurs normalisee.
+- Architecture de pipeline de middlewares HTTP (LoggingMiddleware, CsrfMiddleware, AuthMiddleware).
+- Journalisation structuree dans storage/logs/app.log enregistrant requetes HTTP, operations metier et exceptions.
+- Pipeline d'integration continue GitHub Actions (.github/workflows/ci.yml) validant Composer et executant PHPUnit sur PHP 8.2 et 8.3.
+- Suite de tests etendue atteignant 50 tests et 148 assertions (tests unitaires de services, tests d'integration et tests fonctionnels HTTP).
+- Documentation d'architecture enrichie (Section 15 dans ARCHITECTURE.md, guide utilisateur dans README.md).
+
 ## [v1.0.0] - 2026-09-06
 ### Ajouté
 - Style CSS soigné, moderne, responsive et accessible dans `public/assets/style.css`.

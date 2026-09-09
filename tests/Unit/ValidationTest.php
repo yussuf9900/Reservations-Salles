@@ -19,9 +19,6 @@ class ValidationTest extends TestCase
         $this->reservationValidator = new ReservationValidator();
     }
 
-    /**
-     * Test 1 : Adresse électronique invalide
-     */
     public function testAdresseElectroniqueInvalide(): void
     {
         $data = [
@@ -39,9 +36,6 @@ class ValidationTest extends TestCase
         $this->assertArrayHasKey('email', $result->errors());
     }
 
-    /**
-     * Test 2 : Responsable vide
-     */
     public function testResponsableVide(): void
     {
         $data = [
@@ -59,9 +53,6 @@ class ValidationTest extends TestCase
         $this->assertArrayHasKey('responsable', $result->errors());
     }
 
-    /**
-     * Test 3 : Capacité négative
-     */
     public function testCapaciteNegative(): void
     {
         $data = [
@@ -78,16 +69,13 @@ class ValidationTest extends TestCase
         $this->assertArrayHasKey('capacite', $result->errors());
     }
 
-    /**
-     * Test 4 : Type de salle inconnu
-     */
     public function testTypeSalleInconnu(): void
     {
         $data = [
             'nom'      => 'Salle Test',
             'batiment' => 'Bâtiment A',
             'capacite' => 30,
-            'type'     => 'cafeteria', // Type non autorisé
+            'type'     => 'cafeteria',
             'active'   => true,
         ];
 
@@ -97,9 +85,6 @@ class ValidationTest extends TestCase
         $this->assertArrayHasKey('type', $result->errors());
     }
 
-    /**
-     * Test 5 : Date incorrecte
-     */
     public function testDateIncorrecte(): void
     {
         $data = [

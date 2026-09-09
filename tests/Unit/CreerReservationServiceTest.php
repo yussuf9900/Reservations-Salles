@@ -26,7 +26,6 @@ class CreerReservationServiceTest extends TestCase
         $this->reservationRepo = new InMemoryReservationRepository();
         $this->service = new CreerReservationService($this->salleRepo, $this->reservationRepo);
 
-        // Créer une salle active par défaut
         $salle = new Salle([
             'nom'      => 'Salle B12',
             'batiment' => 'Bâtiment B',
@@ -38,9 +37,6 @@ class CreerReservationServiceTest extends TestCase
         $this->salleRepo->save($salle);
     }
 
-    /**
-     * Cas 1 : Réservation valide
-     */
     public function testReservationValideEstCreeeAvecSucces(): void
     {
         $demain = new DateTimeImmutable('+1 day');
@@ -64,14 +60,11 @@ class CreerReservationServiceTest extends TestCase
         $this->assertCount(1, $this->reservationRepo->all());
     }
 
-    /**
-     * Cas 2 : Salle inexistante
-     */
     public function testReservationEchoueSiSalleInexistante(): void
     {
         $demain = new DateTimeImmutable('+1 day');
         $dto = new CreerReservationDTO(
-            salleId: 999, // Inexistante
+            salleId: 999,
             responsable: 'Awa Ndiaye',
             email: 'awa.ndiaye@universite.sn',
             motif: 'Cours d\'architecture logicielle',
@@ -85,9 +78,6 @@ class CreerReservationServiceTest extends TestCase
         $this->service->execute($dto);
     }
 
-    /**
-     * Cas 3 : Salle inactive
-     */
     public function testReservationEchoueSiSalleInactive(): void
     {
         $salleInactive = new Salle([
@@ -116,9 +106,6 @@ class CreerReservationServiceTest extends TestCase
         $this->service->execute($dto);
     }
 
-    /**
-     * Cas 4 : Date de fin antérieure ou égale au début
-     */
     public function testReservationEchoueSiFinAnterieureAuDebut(): void
     {
         $demain = new DateTimeImmutable('+1 day');
@@ -128,7 +115,7 @@ class CreerReservationServiceTest extends TestCase
             email: 'awa.ndiaye@universite.sn',
             motif: 'Cours d\'architecture logicielle',
             dateDebut: $demain->setTime(14, 0),
-            dateFin: $demain->setTime(12, 0) // Fin antérieure
+            dateFin: $demain->setTime(12, 0)
         );
 
         $this->expectException(SalleIndisponibleException::class);
@@ -137,9 +124,6 @@ class CreerReservationServiceTest extends TestCase
         $this->service->execute($dto);
     }
 
-    /**
-     * Cas 5 : Durée supérieure à 4 heures
-     */
     public function testReservationEchoueSiDureeSuperieureAQuatreHeures(): void
     {
         $demain = new DateTimeImmutable('+1 day');
@@ -149,7 +133,7 @@ class CreerReservationServiceTest extends TestCase
             email: 'awa.ndiaye@universite.sn',
             motif: 'Long atelier de programmation',
             dateDebut: $demain->setTime(8, 0),
-            dateFin: $demain->setTime(14, 0) // 6 heures
+            dateFin: $demain->setTime(14, 0)
         );
 
         $this->expectException(SalleIndisponibleException::class);
@@ -158,9 +142,6 @@ class CreerReservationServiceTest extends TestCase
         $this->service->execute($dto);
     }
 
-    /**
-     * Cas 6 : Date passée
-     */
     public function testReservationEchoueSiDatePassee(): void
     {
         $hier = new DateTimeImmutable('-1 day');
@@ -179,14 +160,10 @@ class CreerReservationServiceTest extends TestCase
         $this->service->execute($dto);
     }
 
-    /**
-     * Cas 7 : Conflit avec une réservation existante (chevauchement)
-     */
     public function testReservationEchoueEnCasDeConflit(): void
     {
         $demain = new DateTimeImmutable('+1 day');
         
-        // Réservation existante : 10h00 -> 12h00
         $existante = new Reservation([
             'salle_id'    => 1,
             'responsable' => 'Moussa Diop',
@@ -199,7 +176,6 @@ class CreerReservationServiceTest extends TestCase
         $existante->id = 10;
         $this->reservationRepo->save($existante);
 
-        // Nouvelle demande : 11h30 -> 13h00 (chevauchement)
         $dto = new CreerReservationDTO(
             salleId: 1,
             responsable: 'Awa Ndiaye',
@@ -215,14 +191,10 @@ class CreerReservationServiceTest extends TestCase
         $this->service->execute($dto);
     }
 
-    /**
-     * Cas 8 : Réservations voisines sans chevauchement
-     */
     public function testReservationsVoisinesSontAcceptees(): void
     {
         $demain = new DateTimeImmutable('+1 day');
         
-        // Réservation existante : 10h00 -> 12h00
         $existante = new Reservation([
             'salle_id'    => 1,
             'responsable' => 'Moussa Diop',
@@ -235,7 +207,6 @@ class CreerReservationServiceTest extends TestCase
         $existante->id = 11;
         $this->reservationRepo->save($existante);
 
-        // Nouvelle demande voisine : 12h00 -> 14h00
         $dto = new CreerReservationDTO(
             salleId: 1,
             responsable: 'Awa Ndiaye',

@@ -9,6 +9,7 @@ use App\Model\Salle;
 use App\Repository\EloquentReservationRepository;
 use App\Repository\EloquentSalleRepository;
 use DateTimeImmutable;
+use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\TestCase;
 
 class EloquentIntegrationTest extends TestCase
@@ -18,7 +19,6 @@ class EloquentIntegrationTest extends TestCase
 
     protected function setUp(): void
     {
-        // Initialiser la base de données
         $initDb = require dirname(__DIR__, 2) . '/config/database.php';
         $initDb();
 
@@ -26,9 +26,6 @@ class EloquentIntegrationTest extends TestCase
         $this->reservationRepo = new EloquentReservationRepository();
     }
 
-    /**
-     * Test 1 : Création d'une salle avec Eloquent et le Repository
-     */
     public function testCreationSalleAvecEloquent(): Salle
     {
         $nomUnique = 'Salle Test Eloquent ' . uniqid();
@@ -52,10 +49,7 @@ class EloquentIntegrationTest extends TestCase
         return $retrouvee;
     }
 
-    /**
-     * Test 2 : Relation salle / réservations
-     * @depends testCreationSalleAvecEloquent
-     */
+    #[Depends('testCreationSalleAvecEloquent')]
     public function testRelationSalleReservations(Salle $salle): Reservation
     {
         $debut = new DateTimeImmutable('+5 days 10:00:00');
@@ -74,23 +68,17 @@ class EloquentIntegrationTest extends TestCase
         $this->reservationRepo->save($reservation);
 
         $this->assertNotNull($reservation->id);
-        // Test relation Reservation -> Salle
         $this->assertSame((int)$salle->id, (int)$reservation->salle->id);
 
-        // Test relation Salle -> Reservations
         $reservationsSalle = $salle->reservations;
         $this->assertTrue($reservationsSalle->contains('id', $reservation->id));
 
         return $reservation;
     }
 
-    /**
-     * Test 3 : Recherche de chevauchement en base
-     * @depends testCreationSalleAvecEloquent
-     */
+    #[Depends('testCreationSalleAvecEloquent')]
     public function testRechercheChevauchementEnBase(Salle $salle): void
     {
-        // Créneau en conflit : +5 days 11h00 -> 13h00 (la résa existante est 10h00 -> 12h00)
         $debutConflit = new DateTimeImmutable('+5 days 11:00:00');
         $finConflit = new DateTimeImmutable('+5 days 13:00:00');
 
@@ -103,7 +91,6 @@ class EloquentIntegrationTest extends TestCase
         $this->assertNotNull($conflit, 'Un conflit aurait dû être détecté pour le créneau 11h-13h.');
         $this->assertSame('confirmée', $conflit->statut);
 
-        // Créneau voisin sans conflit : +5 days 12h00 -> 14h00
         $debutVoisin = new DateTimeImmutable('+5 days 12:00:00');
         $finVoisin = new DateTimeImmutable('+5 days 14:00:00');
 
@@ -116,10 +103,7 @@ class EloquentIntegrationTest extends TestCase
         $this->assertNull($sansConflit, 'Aucun conflit ne devrait être détecté pour un créneau voisin (12h-14h).');
     }
 
-    /**
-     * Test 4 : Annulation d'une réservation
-     * @depends testRelationSalleReservations
-     */
+    #[Depends('testRelationSalleReservations')]
     public function testAnnulationReservation(Reservation $reservation): void
     {
         $annule = $this->reservationRepo->annuler((int)$reservation->id);
@@ -129,7 +113,6 @@ class EloquentIntegrationTest extends TestCase
         $this->assertNotNull($miseAJour);
         $this->assertSame('annulée', $miseAJour->statut);
 
-        // Une réservation annulée ne bloque plus le créneau
         $conflitApresAnnulation = $this->reservationRepo->trouverConflit(
             (int)$reservation->salle_id,
             new DateTimeImmutable('+5 days 10:30:00'),

@@ -32,9 +32,6 @@ class Reservation extends Model
         'annulée',
     ];
 
-    /**
-     * Relation : Une réservation appartient à une salle
-     */
     public function salle(): BelongsTo
     {
         return $this->belongsTo(Salle::class, 'salle_id');

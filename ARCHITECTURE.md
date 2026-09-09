@@ -565,3 +565,70 @@ $response = $controller->$method(...array_values($vars));
    Pour éviter que le conteneur ne se propage dans toute l'application et n'obscurcisse les dépendances réelles des classes.
 5. **Quel anti-pattern apparaît si toutes les classes interrogent le conteneur ?**
    L'anti-pattern **Service Locator**, qui masque les dépendances réelles des classes et complique les tests unitaires.
+
+---
+
+## 15. Analyse Approfondie des 14 Bonus Pédagogiques
+
+### 1. Authentification des Responsables et Hachage Sécurisé
+L'authentification repose sur `App\Service\AuthService` et la persistance des identifiants dans la table `users`. Les mots de passe sont chiffrés à l'aide de l'algorithme standard `PASSWORD_BCRYPT` via les fonctions natives `password_hash` et `password_verify`. La session PHP conserve l'identifiant de l'utilisateur connecté sans jamais exposer le mot de passe dans les vues ou les réponses sérialisées grâce à l'attribut `$hidden` du modèle Eloquent.
+
+### 2. Rôle Administrateur et Contrôle d'Accès
+Le modèle d'autorisation distingue les utilisateurs selon leur rôle (`admin` ou `responsable`). L'administrateur dispose des droits d'administration complète des salles (création, modification, activation/désactivation) et de l'accès au tableau de bord. Le responsable a accès à la consultation et à la réservation simplifiée avec pré-remplissage automatique des données personnelles.
+
+### 3. Boutons d'Authentification Rapide
+Pour faciliter les démonstrations et les scénarios de recette sans nécessiter la saisie manuelle répétée d'identifiants, deux boutons de connexion instantanée sont intégrés sur la page `/login` :
+- Un bouton pour se connecter immédiatement en tant qu'administrateur (`admin@univ.sn`).
+- Un bouton pour se connecter immédiatement en tant que responsable (`prof@univ.sn`).
+L'action est traitée par la route dédiée `POST /login/quick`, validée par jeton CSRF et créant la session de manière sécurisée.
+
+### 4. Pagination Générique
+La classe `App\Pagination\Paginator` encapsule le calcul des pages, des décalages SQL (`offset`) et du volume total d'enregistrements. Elle fournit une structure standardisée compatible à la fois avec le composant de navigation HTML (`templates/shared/pagination.php`) et avec le format de métadonnées des réponses JSON (`meta: { total, per_page, current_page, last_page }`).
+
+### 5. Recherche Multicritère
+Les méthodes `search()` des dépôts `EloquentSalleRepository` et `EloquentReservationRepository` permettent le filtrage combiné :
+- Pour les salles : recherche textuelle insensible à la casse sur le nom ou le bâtiment, filtrage par type, seuil de capacité minimale, statut d'activité et disponibilité sur un créneau temporel cible.
+- Pour les réservations : filtrage par salle, par statut (confirmée ou annulée), par responsable/courriel/motif et par date précise.
+
+### 6. Tableau de Bord des Salles les Plus Utilisées
+Le service `App\Service\StatistiquesService` agrège les données d'utilisation pour alimenter la vue `/dashboard` :
+- Indicateurs clés (KPIs) : total des salles répertoriées, réservations actives, heures cumulées réservées et taux d'occupation estimé.
+- Top 5 des salles les plus sollicitées : classement ordonné par nombre de créneaux validés et cumul d'heures réelles d'occupation.
+- Répartition de la demande par type de salle et calendrier prévisionnel des 5 prochaines réservations à venir.
+
+### 7. Prévention des Attaques CSRF
+Le service `App\Service\CsrfService` génère des jetons cryptographiques pseudo-aléatoires de 32 octets (`random_bytes(32)`) stockés dans la session. Le middleware `CsrfMiddleware` intercepte automatiquement chaque requête HTTP avec méthode `POST` sur l'interface web pour comparer le jeton transmis (`_token`) avec celui en session via `hash_equals()`. Toute requête non authentifiée ou falsifiée est bloquée avec le code HTTP 403 Forbidden.
+
+### 8. Pipeline de Middlewares HTTP
+L'application intègre une chaîne de middlewares exécutée selon le patron d'interception :
+- `LoggingMiddleware` : journalise la méthode, l'URL, l'adresse IP cliente, le code de statut HTTP et la durée d'exécution en millisecondes.
+- `CsrfMiddleware` : applique la politique de protection CSRF sur les formulaires d'écriture.
+- `AuthMiddleware` : contrôle les autorisations sur les URL sensibles et redirige les utilisateurs non authentifiés vers la page de connexion.
+
+### 9. Journalisation Structurée (Logging)
+Le composant `App\Service\LoggerService` enregistre les événements significatifs dans le fichier `storage/logs/app.log`. Chaque entrée horodatée consigne le niveau de criticité (`INFO`, `WARNING`, `ERROR`), le message et le contexte technique sérialisé en JSON (identifiants, adresses IP, motifs d'échec).
+
+### 10. API JSON REST
+L'application expose une suite complète d'endpoints REST sous le préfixe `/api/` :
+- `GET /api/salles` et `GET /api/salles/{id}` : consultation des salles et de leurs plannings avec pagination et filtres.
+- `POST /api/salles` : ajout d'une salle avec retour HTTP 201 Created ou 422 Unprocessable Entity.
+- `GET /api/reservations` et `GET /api/reservations/{id}` : consultation des réservations.
+- `POST /api/reservations` : création d'un créneau avec détection des conflits métier et retour JSON normalisé.
+- `POST /api/reservations/{id}/cancel` : annulation de réservation.
+- `GET /api/stats` : exportation des indicateurs du tableau de bord.
+
+### 11. Transactions ACID lors des Réservations
+Pour éviter les incohérences de données en cas d'erreur ou d'interruption réseau pendant le traitement, la création et l'annulation de réservations sont encapsulées dans des transactions de base de données via `Capsule::connection()->transaction()`. En cas d'exception ou de conflit métier, l'intégralité des modifications est annulée (`rollback`), garantissant les propriétés ACID.
+
+### 12. Protection contre Deux Réservations Simultanées (Concurrence)
+Pour éliminer les situations de compétition (*race conditions*) où deux requêtes concurrentes tenteraient d'enregistrer le même créneau sur la même salle à la même fraction de seconde, le service métier applique un verrouillage pessimiste sur la ligne de la salle cible via `Salle::where('id', $dto->salleId)->lockForUpdate()->first()`.
+La première transaction acquiert le verrou exclusif ; la seconde transaction est mise en attente au niveau du moteur MySQL/InnoDB jusqu'à la validation (`commit`) de la première. Lorsque la seconde transaction s'exécute, sa vérification `trouverConflit()` détecte le nouveau créneau et lève immédiatement une `SalleIndisponibleException`.
+
+### 13. Déploiement Conteneurisé avec Docker
+L'infrastructure Docker (composée du conteneur applicatif PHP 8.3/Apache et du conteneur MySQL 8.0) orchestre le montage des volumes, la persistance des données dans `db_data` et l'exécution automatique des migrations et seeders lors du lancement.
+
+### 14. Intégration Continue (GitHub Actions)
+Le fichier `.github/workflows/ci.yml` automatise les vérifications qualité sur chaque modification envoyée vers le dépôt distant :
+- Validation syntaxique et stricte du fichier `composer.json`.
+- Exécution de la suite complète de 50 tests automatisés (unitaires et fonctionnels HTTP) sur les versions PHP 8.2 et 8.3.
+

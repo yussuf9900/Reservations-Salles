@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace Tests\Double;
 
 use App\Model\Reservation;
+use App\Pagination\Paginator;
 use App\Repository\ReservationRepositoryInterface;
 use DateTimeImmutable;
 use DateTimeInterface;
 
 class InMemoryReservationRepository implements ReservationRepositoryInterface
 {
-    /**
-     * @var array<int, Reservation>
-     */
     private array $reservations = [];
     private int $nextId = 1;
 
@@ -81,12 +79,51 @@ class InMemoryReservationRepository implements ReservationRepositoryInterface
                 ? $res->date_fin->getTimestamp()
                 : (new DateTimeImmutable((string)$res->date_fin))->getTimestamp();
 
-            // Chevauchement : nouveauDebut < reservationExistante.dateFin ET nouvelleFin > reservationExistante.dateDebut
             if ($debutTs < $resFin && $finTs > $resDebut) {
                 return $res;
             }
         }
 
         return null;
+    }
+
+    public function search(array $criteres = [], int $page = 1, int $perPage = 8): Paginator
+    {
+        $filtered = array_values(array_filter($this->reservations, function (Reservation $r) use ($criteres) {
+            if (!empty($criteres['salle_id']) && (int)$r->salle_id !== (int)$criteres['salle_id']) {
+                return false;
+            }
+
+            if (!empty($criteres['statut']) && $r->statut !== $criteres['statut']) {
+                return false;
+            }
+
+            if (!empty($criteres['q'])) {
+                $q = strtolower(trim((string)$criteres['q']));
+                $respMatch = str_contains(strtolower((string)$r->responsable), $q);
+                $mailMatch = str_contains(strtolower((string)$r->email), $q);
+                $motifMatch = str_contains(strtolower((string)$r->motif), $q);
+                if (!$respMatch && !$mailMatch && !$motifMatch) {
+                    return false;
+                }
+            }
+
+            if (!empty($criteres['date'])) {
+                $dateStr = $r->date_debut instanceof DateTimeInterface
+                    ? $r->date_debut->format('Y-m-d')
+                    : substr((string)$r->date_debut, 0, 10);
+                if ($dateStr !== $criteres['date']) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+
+        $total = count($filtered);
+        $offset = ($page - 1) * $perPage;
+        $items = array_slice($filtered, $offset, $perPage);
+
+        return new Paginator($items, $total, $perPage, $page);
     }
 }

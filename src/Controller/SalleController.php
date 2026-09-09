@@ -7,6 +7,8 @@ namespace App\Controller;
 use App\DTO\CreerSalleDTO;
 use App\Model\Salle;
 use App\Repository\SalleRepositoryInterface;
+use App\Service\AuthService;
+use App\Service\CsrfService;
 use App\Validation\SalleValidator;
 use App\View\ViewRenderer;
 
@@ -15,17 +17,38 @@ class SalleController
     public function __construct(
         private readonly SalleRepositoryInterface $salles,
         private readonly SalleValidator $validator,
-        private readonly ViewRenderer $view
+        private readonly ViewRenderer $view,
+        private readonly ?CsrfService $csrf = null,
+        private readonly ?AuthService $auth = null
     ) {
     }
 
     public function index(): string
     {
-        $listeSalles = $this->salles->all();
+        $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 6;
+
+        $criteres = [
+            'q'            => isset($_GET['q']) ? trim((string)$_GET['q']) : '',
+            'type'         => isset($_GET['type']) ? trim((string)$_GET['type']) : '',
+            'capacite_min' => isset($_GET['capacite_min']) && is_numeric($_GET['capacite_min']) ? (int)$_GET['capacite_min'] : '',
+            'active'       => isset($_GET['active']) && $_GET['active'] !== '' ? (string)$_GET['active'] : '',
+            'dispo_debut'  => isset($_GET['dispo_debut']) ? trim((string)$_GET['dispo_debut']) : '',
+            'dispo_fin'    => isset($_GET['dispo_fin']) ? trim((string)$_GET['dispo_fin']) : '',
+        ];
+
+        $paginator = $this->salles->search($criteres, $page, $perPage);
+
+        $queryParams = array_filter($criteres, fn($v) => $v !== '' && $v !== null);
 
         return $this->view->render('salle/index', [
-            'title'  => 'Liste des salles',
-            'salles' => $listeSalles,
+            'title'       => 'Liste des salles',
+            'salles'      => $paginator->items(),
+            'paginator'   => $paginator,
+            'criteres'    => $criteres,
+            'queryParams' => $queryParams,
+            'baseUrl'     => '/salles',
+            'isAdmin'     => $this->auth?->isAdmin() ?? false,
         ]);
     }
 
@@ -38,17 +61,19 @@ class SalleController
         }
 
         return $this->view->render('salle/show', [
-            'title' => 'Détail de la salle : ' . $salle->nom,
-            'salle' => $salle,
+            'title'   => 'Détail de la salle : ' . $salle->nom,
+            'salle'   => $salle,
+            'isAdmin' => $this->auth?->isAdmin() ?? false,
         ]);
     }
 
     public function create(): string
     {
         return $this->view->render('salle/form', [
-            'title'  => 'Ajouter une salle',
-            'old'    => [],
-            'errors' => [],
+            'title'      => 'Ajouter une salle',
+            'old'        => [],
+            'errors'     => [],
+            'csrf_token' => $this->csrf?->getToken() ?? '',
         ]);
     }
 
@@ -60,9 +85,10 @@ class SalleController
 
         if (!$result->isValid()) {
             return $this->view->render('salle/form', [
-                'title'  => 'Ajouter une salle',
-                'old'    => $data,
-                'errors' => $result->errors(),
+                'title'      => 'Ajouter une salle',
+                'old'        => $data,
+                'errors'     => $result->errors(),
+                'csrf_token' => $this->csrf?->getToken() ?? '',
             ]);
         }
 
@@ -80,7 +106,10 @@ class SalleController
 
         $this->view->setFlash('success', "La salle '{$salle->nom}' a été créée avec succès.");
         header('Location: /salles/' . $salle->id);
-        exit;
+        if (!defined('PHPUNIT_RUNNING')) {
+            exit;
+        }
+        return '';
     }
 
     public function edit(int $id): string
@@ -92,16 +121,17 @@ class SalleController
         }
 
         return $this->view->render('salle/form', [
-            'title'  => 'Modifier la salle ' . $salle->nom,
-            'salle'  => $salle,
-            'old'    => [
+            'title'      => 'Modifier la salle ' . $salle->nom,
+            'salle'      => $salle,
+            'old'        => [
                 'nom'      => $salle->nom,
                 'batiment' => $salle->batiment,
                 'capacite' => $salle->capacite,
                 'type'     => $salle->type,
                 'active'   => $salle->active,
             ],
-            'errors' => [],
+            'errors'     => [],
+            'csrf_token' => $this->csrf?->getToken() ?? '',
         ]);
     }
 
@@ -118,10 +148,11 @@ class SalleController
 
         if (!$result->isValid()) {
             return $this->view->render('salle/form', [
-                'title'  => 'Modifier la salle ' . $salle->nom,
-                'salle'  => $salle,
-                'old'    => $data,
-                'errors' => $result->errors(),
+                'title'      => 'Modifier la salle ' . $salle->nom,
+                'salle'      => $salle,
+                'old'        => $data,
+                'errors'     => $result->errors(),
+                'csrf_token' => $this->csrf?->getToken() ?? '',
             ]);
         }
 
@@ -137,6 +168,9 @@ class SalleController
 
         $this->view->setFlash('success', "La salle '{$salle->nom}' a été mise à jour.");
         header('Location: /salles/' . $salle->id);
-        exit;
+        if (!defined('PHPUNIT_RUNNING')) {
+            exit;
+        }
+        return '';
     }
 }

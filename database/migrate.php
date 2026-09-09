@@ -18,6 +18,7 @@ try {
 $migrations = [
     __DIR__ . '/migrations/01_create_salles_table.php',
     __DIR__ . '/migrations/02_create_reservations_table.php',
+    __DIR__ . '/migrations/03_create_users_table.php',
 ];
 
 foreach ($migrations as $migrationFile) {
