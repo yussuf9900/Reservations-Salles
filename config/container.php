@@ -3,33 +3,45 @@
 declare(strict_types=1);
 
 use App\Application;
+use App\Controller\Api\ApiDashboardController;
+use App\Controller\Api\ApiReservationController;
+use App\Controller\Api\ApiSalleController;
+use App\Controller\AuthController;
+use App\Controller\DashboardController;
 use App\Controller\ReservationController;
 use App\Controller\SalleController;
+use App\Middleware\AuthMiddleware;
+use App\Middleware\CsrfMiddleware;
+use App\Middleware\LoggingMiddleware;
 use App\Repository\EloquentReservationRepository;
 use App\Repository\EloquentSalleRepository;
+use App\Repository\EloquentUserRepository;
 use App\Repository\ReservationRepositoryInterface;
 use App\Repository\SalleRepositoryInterface;
+use App\Repository\UserRepositoryInterface;
 use App\Service\AnnulerReservationService;
+use App\Service\AuthService;
 use App\Service\CreerReservationService;
+use App\Service\CsrfService;
+use App\Service\LoggerService;
+use App\Service\StatistiquesService;
 use App\Validation\ReservationValidator;
 use App\Validation\SalleValidator;
 use App\View\ViewRenderer;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Psr\Container\ContainerInterface;
 use function DI\autowire;
 use function DI\factory;
 
 return [
-    // Configuration et démarrage de la base de données Eloquent (Capsule)
     Capsule::class => factory(function (): Capsule {
         $initDb = require __DIR__ . '/database.php';
         return $initDb();
     }),
 
-    // Abstractions des données (Interfaces liées aux implémentations Eloquent)
     SalleRepositoryInterface::class => factory(function (Capsule $capsule): SalleRepositoryInterface {
-        // Garantit que Eloquent est initialisé avant d'utiliser le repository
         return new EloquentSalleRepository();
     }),
 
@@ -37,22 +49,35 @@ return [
         return new EloquentReservationRepository();
     }),
 
-    // Validateurs
+    UserRepositoryInterface::class => factory(function (Capsule $capsule): UserRepositoryInterface {
+        return new EloquentUserRepository();
+    }),
+
     SalleValidator::class => autowire(SalleValidator::class),
     ReservationValidator::class => autowire(ReservationValidator::class),
 
-    // Services métier (injection explicite par constructeur)
+    LoggerService::class => autowire(LoggerService::class),
+    CsrfService::class => autowire(CsrfService::class),
+    AuthService::class => autowire(AuthService::class),
+    StatistiquesService::class => autowire(StatistiquesService::class),
+
     CreerReservationService::class => autowire(CreerReservationService::class),
     AnnulerReservationService::class => autowire(AnnulerReservationService::class),
 
-    // Moteur de rendu
     ViewRenderer::class => autowire(ViewRenderer::class),
 
-    // Contrôleurs HTTP
+    LoggingMiddleware::class => autowire(LoggingMiddleware::class),
+    CsrfMiddleware::class => autowire(CsrfMiddleware::class),
+    AuthMiddleware::class => autowire(AuthMiddleware::class),
+
     SalleController::class => autowire(SalleController::class),
     ReservationController::class => autowire(ReservationController::class),
+    AuthController::class => autowire(AuthController::class),
+    DashboardController::class => autowire(DashboardController::class),
+    ApiSalleController::class => autowire(ApiSalleController::class),
+    ApiReservationController::class => autowire(ApiReservationController::class),
+    ApiDashboardController::class => autowire(ApiDashboardController::class),
 
-    // Routeur FastRoute Dispatcher
     Dispatcher::class => factory(function (): Dispatcher {
         $routesCallback = require dirname(__DIR__) . '/routes/web.php';
         return \FastRoute\simpleDispatcher(function (RouteCollector $r) use ($routesCallback): void {
@@ -60,6 +85,18 @@ return [
         });
     }),
 
-    // Application principale
-    Application::class => autowire(Application::class),
+    Application::class => factory(function (ContainerInterface $c): Application {
+        $middlewares = [
+            $c->get(LoggingMiddleware::class),
+            $c->get(CsrfMiddleware::class),
+            $c->get(AuthMiddleware::class),
+        ];
+
+        return new Application(
+            $c->get(Dispatcher::class),
+            $c,
+            $c->get(ViewRenderer::class),
+            $middlewares
+        );
+    }),
 ];
