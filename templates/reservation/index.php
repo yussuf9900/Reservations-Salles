@@ -24,8 +24,8 @@ foreach ($reservations as $r) {
     </div>
 </div>
 
-<div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem; background: #ffffff;">
-    <form method="GET" action="/reservations" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 0.75rem; align-items: flex-end;">
+<div class="card filter-card">
+    <form method="GET" action="/reservations" class="filter-grid">
         <div class="form-group" style="margin-bottom: 0;">
             <label for="filter-salle" class="form-label" style="font-size: 0.8rem;">Filtrer par salle</label>
             <select id="filter-salle" name="salle_id" class="form-control">
@@ -57,7 +57,7 @@ foreach ($reservations as $r) {
             <input type="date" id="date" name="date" class="form-control" value="<?= htmlspecialchars($criteres['date'] ?? '') ?>">
         </div>
 
-        <div style="display: flex; gap: 0.5rem;">
+        <div class="filter-actions">
             <button type="submit" class="btn btn-primary" style="height: 42px;">
                 <?= \App\View\Icons::filter('icon-sm') ?>
                 <span>Filtrer</span>
@@ -73,7 +73,7 @@ foreach ($reservations as $r) {
 
 <div class="card table-card animate-in">
     <div class="table-responsive">
-        <table class="data-table">
+        <table class="data-table data-table-reservations">
             <thead>
                 <tr>
                     <th>Identifiant</th>
@@ -106,7 +106,7 @@ foreach ($reservations as $r) {
                                 <span class="badge badge-secondary">#<?= (int)$res->id ?></span>
                             </td>
                             <td>
-                                <strong>
+                                <strong class="cell-room-title">
                                     <a href="/salles/<?= (int)$res->salle_id ?>" class="row-highlight">
                                         <?= htmlspecialchars($res->salle->nom ?? 'Salle #' . $res->salle_id) ?>
                                     </a>
@@ -120,15 +120,15 @@ foreach ($reservations as $r) {
                                 </div>
                             </td>
                             <td>
-                                <span><?= htmlspecialchars($res->motif) ?></span>
+                                <span class="cell-motif" title="<?= htmlspecialchars($res->motif) ?>"><?= htmlspecialchars($res->motif) ?></span>
                             </td>
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <span class="badge badge-secondary">
                                     <?= \App\View\Icons::clock('icon-sm') ?>
                                     <?= htmlspecialchars($res->date_debut instanceof \DateTimeInterface ? $res->date_debut->format('d/m/Y H:i') : (string)$res->date_debut) ?>
                                 </span>
                             </td>
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <span class="badge badge-secondary">
                                     <?= \App\View\Icons::clock('icon-sm') ?>
                                     <?= htmlspecialchars($res->date_fin instanceof \DateTimeInterface ? $res->date_fin->format('d/m/Y H:i') : (string)$res->date_fin) ?>

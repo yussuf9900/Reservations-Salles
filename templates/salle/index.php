@@ -23,8 +23,8 @@ foreach ($salles as $s) {
     </div>
 </div>
 
-<div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem; background: #ffffff;">
-    <form method="GET" action="/salles" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 0.75rem; align-items: flex-end;">
+<div class="card filter-card">
+    <form method="GET" action="/salles" class="filter-grid">
         <div class="form-group" style="margin-bottom: 0;">
             <label for="q" class="form-label" style="font-size: 0.8rem;">Recherche (nom, bâtiment)</label>
             <input type="text" id="q" name="q" class="form-control" value="<?= htmlspecialchars($criteres['q'] ?? '') ?>" placeholder="ex: Amphithéâtre, Bâtiment B...">
@@ -56,7 +56,7 @@ foreach ($salles as $s) {
             </select>
         </div>
 
-        <div style="display: flex; gap: 0.5rem;">
+        <div class="filter-actions">
             <button type="submit" class="btn btn-primary" style="height: 42px;">
                 <?= \App\View\Icons::filter('icon-sm') ?>
                 <span>Filtrer</span>
@@ -104,7 +104,7 @@ foreach ($salles as $s) {
                                 <span class="badge badge-secondary">#<?= (int)$salle->id ?></span>
                             </td>
                             <td>
-                                <strong>
+                                <strong class="cell-room-title">
                                     <a href="/salles/<?= (int)$salle->id ?>" class="row-highlight">
                                         <?= htmlspecialchars($salle->nom) ?>
                                     </a>

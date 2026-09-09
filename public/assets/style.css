@@ -68,6 +68,7 @@ a:hover {
     max-width: 1140px;
     margin: 0 auto;
     padding: 0 1.5rem;
+    min-width: 0;
 }
 
 .icon {
@@ -169,6 +170,8 @@ a:hover {
 .main-content {
     flex: 1;
     padding: 2.5rem 0;
+    min-width: 0;
+    width: 100%;
 }
 
 .page-header {
@@ -316,11 +319,34 @@ a:hover {
 .table-card {
     padding: 0;
     overflow: hidden;
+    width: 100%;
+    min-width: 0;
 }
 
 .table-responsive {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     width: 100%;
+    min-width: 0;
+    position: relative;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: var(--slate-100);
+    border-radius: var(--radius-full);
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--slate-300);
+    border-radius: var(--radius-full);
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--slate-400);
 }
 
 .data-table {
@@ -328,6 +354,11 @@ a:hover {
     border-collapse: collapse;
     text-align: left;
     font-size: 0.925rem;
+    min-width: 680px;
+}
+
+.data-table-reservations {
+    min-width: 860px;
 }
 
 .data-table th {
@@ -339,6 +370,7 @@ a:hover {
     text-transform: uppercase;
     font-size: 0.725rem;
     letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
 .data-table td {
@@ -346,6 +378,7 @@ a:hover {
     border-bottom: 1px solid var(--slate-200);
     vertical-align: middle;
     transition: background-color var(--transition-fast);
+    overflow-wrap: break-word;
 }
 
 .data-table tr:last-child td {
@@ -365,15 +398,85 @@ a:hover {
     color: var(--slate-900);
 }
 
+.cell-room-title {
+    max-width: 220px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.cell-motif {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .cell-meta {
     display: flex;
     flex-direction: column;
 }
 
-.cell-sub {
+.cell-meta .cell-sub {
     font-size: 0.825rem;
     color: var(--slate-500);
     margin-top: 0.15rem;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+    max-width: 220px;
+}
+
+.filter-card {
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    background: var(--white);
+    width: 100%;
+    min-width: 0;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
+    gap: 0.75rem;
+    align-items: flex-end;
+    width: 100%;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.format-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background-color: var(--slate-100);
+    padding: 0.2rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--slate-200);
+}
+
+.format-pill {
+    padding: 0.2rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    color: var(--slate-600);
+    transition: all var(--transition-fast);
+}
+
+.format-pill:hover {
+    color: var(--slate-900);
+}
+
+.format-pill.active {
+    background-color: var(--primary);
+    color: var(--white);
+    box-shadow: var(--shadow-xs);
 }
 
 .text-right {
@@ -856,6 +959,19 @@ a:hover {
         align-items: stretch;
     }
 
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        width: 100%;
+        margin-top: 0.25rem;
+    }
+
+    .filter-actions .btn {
+        flex: 1;
+    }
+
     .filter-group {
         flex-direction: column;
         align-items: stretch;
@@ -864,6 +980,11 @@ a:hover {
     .filter-group select {
         width: 100%;
         min-width: unset;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem 0.85rem;
     }
 
     .footer-container {
