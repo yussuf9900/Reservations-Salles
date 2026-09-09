@@ -187,7 +187,10 @@ foreach ($reservations as $r) {
                                         <?= \App\View\Icons::eye('icon-sm') ?>
                                         <span>Détails</span>
                                     </a>
-                                    <?php if ($res->statut === 'confirmée'): ?>
+                                    <?php 
+                                        $canCancelItem = ($isAdmin ?? false) || (!empty($currentUser) && ($currentUser->email === $res->email || $currentUser->nom === $res->responsable));
+                                    ?>
+                                    <?php if ($res->statut === 'confirmée' && $canCancelItem): ?>
                                         <form method="POST" action="/reservations/<?= (int)$res->id ?>/cancel" class="table-actions">
                                             <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
                                             <button type="submit" class="btn btn-xs btn-danger" title="Annuler cette réservation">
