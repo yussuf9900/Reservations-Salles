@@ -9,7 +9,7 @@
             <span>Retour à la liste</span>
         </a>
         <?php if ($reservation->statut === 'confirmée'): ?>
-            <form method="POST" action="/reservations/<?= (int)$reservation->id ?>/cancel" style="display:inline;">
+            <form method="POST" action="/reservations/<?= (int)$reservation->id ?>/cancel">
                 <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
                 <button type="submit" class="btn btn-danger">
                     <?= \App\View\Icons::trash('icon-sm') ?>
@@ -90,7 +90,7 @@
                 <span>Durée du créneau</span>
             </span>
             <span class="info-val">
-                <?php 
+                <?php
                     $diffMinutes = ($reservation->date_fin->getTimestamp() - $reservation->date_debut->getTimestamp()) / 60;
                     $heures = floor($diffMinutes / 60);
                     $minutes = $diffMinutes % 60;

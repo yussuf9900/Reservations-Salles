@@ -64,7 +64,9 @@ return [
     CreerReservationService::class => autowire(CreerReservationService::class),
     AnnulerReservationService::class => autowire(AnnulerReservationService::class),
 
-    ViewRenderer::class => autowire(ViewRenderer::class),
+    ViewRenderer::class => factory(function (ContainerInterface $c): ViewRenderer {
+        return new ViewRenderer($c->get(CsrfService::class));
+    }),
 
     LoggingMiddleware::class => autowire(LoggingMiddleware::class),
     CsrfMiddleware::class => autowire(CsrfMiddleware::class),

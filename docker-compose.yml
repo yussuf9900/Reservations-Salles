@@ -21,6 +21,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+    volumes:
+      - ./:/var/www/html
 
   database:
     image: mysql:8.0

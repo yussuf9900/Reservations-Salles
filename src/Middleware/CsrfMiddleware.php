@@ -29,9 +29,10 @@ class CsrfMiddleware implements MiddlewareInterface
 
             if (!$this->csrf->validateToken($token)) {
                 http_response_code(403);
-                return $this->view->render('error/405', [
+                return $this->view->render('error/403', [
                     'title'          => 'Session expirée ou requête invalide (CSRF)',
-                    'allowedMethods' => ['Jeton CSRF absent ou invalide. Veuillez rafraîchir la page et réessayer.'],
+                    'message'        => 'Le jeton de sécurité est absent ou invalide. Veuillez rafraîchir la page et réessayer.',
+                    'allowedMethods' => ['Jeton CSRF absent ou invalide.'],
                 ]);
             }
         }

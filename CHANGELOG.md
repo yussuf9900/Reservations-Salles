@@ -2,6 +2,22 @@
 
 Toutes les modifications notables apportées à ce projet sont documentées dans ce fichier selon les recommandations [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [v1.2.1] - 2026-09-09
+### Corrigé
+- **Modification de salle & Token CSRF** : Résolution du bug de champ CSRF vide (`_token=""`) lors de l'édition d'une salle (`/salles/{id}/edit`). Remplacement des dépendances optionnelles par des dépendances requises (`CsrfService`, `AuthService`) dans les constructeurs de `SalleController` et `ReservationController` pour garantir l'autowiring par PHP-DI.
+- **Gestion du token dans ViewRenderer** : Injection de `CsrfService` dans `ViewRenderer` et fiabilisation de l'injection automatique du jeton CSRF avec `empty($data['csrf_token'])` (au lieu de `!isset`).
+- **Désactivation de salle** : Ajout d'un champ caché `<input type="hidden" name="active" value="0">` avant la case à cocher dans `templates/salle/form.php` afin de permettre la désactivation effective d'une salle lorsque la case est décochée.
+- **Page d'erreur 403 Forbidden** : Création du template dédié `templates/error/403.php` avec affichage du motif de refus et boutons de redirection contextuels. Mise à jour de `AuthMiddleware` et `CsrfMiddleware` pour utiliser cette page au lieu d'une page 404 trompeuse.
+- **Pré-remplissage et annulation de réservation** : Conservation de la salle sélectionnée via `?salle_id=` lors de la création d'une réservation, et possibilité d'annuler une réservation directement depuis la page de détails (`/reservations/{id}`).
+
+### Sécurité & Interface
+- **Protection de la création de salle** : Restriction stricte de `POST /salles` aux seuls administrateurs dans `AuthMiddleware` (renvoyant une 403 pour les utilisateurs non autorisés).
+- **Conditionnement visuel des actions admin** : Masquage contextuel des boutons d'ajout (`/salles/creer`) et de modification (`/salles/{id}/edit`) pour les utilisateurs non-administrateurs dans les vues de liste et de détail.
+- **Harmonisation UI / UX** : Mise à jour des gabarits et icônes pour une expérience cohérente sur toutes les pages.
+
+### Tests
+- Ajout de 9 tests d'intégration HTTP complets dans `SalleHttpTest` et `ReservationHttpTest` (modification de salle, bascule actif/inactif, rejet CSRF invalide, pré-remplissage, annulation et restriction admin), portant la couverture totale à 70 tests et 218 assertions réussis à 100%.
+
 ## [v1.2.0] - 2026-09-09
 ### Corrigé
 - Élimination complète des débordements horizontaux (overflow) sur mobile et desktop dans la liste des salles (`/salles`) et la liste des réservations (`/reservations`).
