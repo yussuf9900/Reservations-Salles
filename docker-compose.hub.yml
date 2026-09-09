@@ -37,5 +37,20 @@ services:
       retries: 10
       start_period: 5s
 
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: reservation_salles_pma
+    restart: unless-stopped
+    ports:
+      - "${PMA_PORT:-8081}:80"
+    environment:
+      PMA_HOST: database
+      PMA_PORT: 3306
+      PMA_ALLOW_EMPTY_PASSWORD: "yes"
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      database:
+        condition: service_healthy
+
 volumes:
   db_data:
