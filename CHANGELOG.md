@@ -2,6 +2,25 @@
 
 Toutes les modifications notables apportées à ce projet sont documentées dans ce fichier selon les recommandations [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [v1.3.0] - 2026-09-09
+### Sécurité & Authentification (RBAC)
+- **Verrouillage de l'accès privé** : Interception systématique dans `AuthMiddleware` de toutes les requêtes web privées non authentifiées (`/`, `/salles`, `/reservations`, `/dashboard`, etc.) avec redirection HTTP 302 vers `/login?redirect=...` (ou HTTP 401 pour les requêtes au format JSON).
+- **Gestion sécurisée des redirections** : Transmission et validation de la cible de redirection `?redirect=` lors de la connexion standard et des connexions rapides (`admin` / `responsable`).
+- **Contrôle d'accès à l'annulation** : Restriction de l'action `POST /reservations/{id}/cancel` à l'administrateur et au propriétaire légitime de la réservation (`responsable`). Tout tiers reçoit une erreur `403 Forbidden`.
+- **Intégrité de la création de réservations** : Renseignement et verrouillage automatique des champs `responsable` et `email` à partir du compte connecté dans `ReservationController::store()`.
+
+### Interface Utilisateur (UI)
+- **Masquage de la navigation privée** : Sur la page `/login` ou pour les visiteurs non authentifiés, masquage total des onglets `Salles`, `Réservations`, `Tableau de bord` et du bouton `Réserver` dans `templates/layout/base.php`.
+- **Bouton d'accès phpMyAdmin** : Intégration d'un bouton direct `phpMyAdmin (BDD)` avec icône SVG dédiée dans le Tableau de Bord Administrateur (`/dashboard`).
+- **Filtrage contextuel des actions d'annulation** : Masquage du bouton `Annuler` dans `reservation/index` et `reservation/show` pour les dossiers n'appartenant pas à l'utilisateur connecté (hors administrateur).
+
+### Infrastructure Docker
+- **Service phpMyAdmin** : Ajout du conteneur officiel `phpmyadmin` dans `docker-compose.yml` et `docker-compose.hub.yml`, interconnecté à `database` et exposé sur le port `8081` (`http://localhost:8081`).
+- **Configuration sans friction** : Prise en charge des variables d'environnement (`PMA_PORT`, `PMA_HOST`, `PMA_ALLOW_EMPTY_PASSWORD: "yes"`) et affichage de l'URL dans `docker-run.sh` et `docker-run-hub.sh`.
+
+### Tests
+- Ajout de 12 nouveaux tests HTTP et d'autorisation dans la suite de tests, portant le total à **82 tests et 240 assertions réussis à 100%**.
+
 ## [v1.2.1] - 2026-09-09
 ### Corrigé
 - **Modification de salle & Token CSRF** : Résolution du bug de champ CSRF vide (`_token=""`) lors de l'édition d'une salle (`/salles/{id}/edit`). Remplacement des dépendances optionnelles par des dépendances requises (`CsrfService`, `AuthService`) dans les constructeurs de `SalleController` et `ReservationController` pour garantir l'autowiring par PHP-DI.
