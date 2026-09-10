@@ -583,7 +583,7 @@ Pour faciliter les démonstrations et les scénarios de recette sans nécessiter
 L'action est traitée par la route dédiée `POST /login/quick`, validée par jeton CSRF et créant la session de manière sécurisée.
 
 ### 4. Pagination Générique
-La classe `App\Pagination\Paginator` encapsule le calcul des pages, des décalages SQL (`offset`) et du volume total d'enregistrements. Elle fournit une structure standardisée compatible à la fois avec le composant de navigation HTML (`templates/shared/pagination.php`) et avec le format de métadonnées des réponses JSON (`meta: { total, per_page, current_page, last_page }`).
+Les repositories utilisent `paginate()` d’Eloquent et retournent le contrat `LengthAwarePaginator`. Le composant HTML conserve les filtres ; JSON sérialise les métadonnées natives du paginateur.
 
 ### 5. Recherche Multicritère
 Les méthodes `search()` des dépôts `EloquentSalleRepository` et `EloquentReservationRepository` permettent le filtrage combiné :
@@ -618,10 +618,10 @@ L'application expose une suite complète d'endpoints REST sous le préfixe `/api
 - `GET /api/stats` : exportation des indicateurs du tableau de bord.
 
 ### 11. Transactions ACID lors des Réservations
-Pour éviter les incohérences de données en cas d'erreur ou d'interruption réseau pendant le traitement, la création et l'annulation de réservations sont encapsulées dans des transactions de base de données via `Capsule::connection()->transaction()`. En cas d'exception ou de conflit métier, l'intégralité des modifications est annulée (`rollback`), garantissant les propriétés ACID.
+Pour éviter les incohérences de données en cas d'erreur ou d'interruption réseau pendant le traitement, la création et l'annulation de réservations sont encapsulées dans des transactions de base de données via `EloquentTransactionStrategy::execute()`. En cas d'exception ou de conflit métier, l'intégralité des modifications est annulée (`rollback`), garantissant les propriétés ACID.
 
 ### 12. Protection contre Deux Réservations Simultanées (Concurrence)
-Pour éliminer les situations de compétition (*race conditions*) où deux requêtes concurrentes tenteraient d'enregistrer le même créneau sur la même salle à la même fraction de seconde, le service métier applique un verrouillage pessimiste sur la ligne de la salle cible via `Salle::where('id', $dto->salleId)->lockForUpdate()->first()`.
+Pour éliminer les situations de compétition (*race conditions*) où deux requêtes concurrentes tenteraient d'enregistrer le même créneau sur la même salle à la même fraction de seconde, le service métier applique un verrouillage pessimiste sur la ligne de la salle cible via `SalleRepositoryInterface::findByIdForUpdate()`.
 La première transaction acquiert le verrou exclusif ; la seconde transaction est mise en attente au niveau du moteur MySQL/InnoDB jusqu'à la validation (`commit`) de la première. Lorsque la seconde transaction s'exécute, sa vérification `trouverConflit()` détecte le nouveau créneau et lève immédiatement une `SalleIndisponibleException`.
 
 ### 13. Déploiement Conteneurisé avec Docker
@@ -632,3 +632,38 @@ Le fichier `.github/workflows/ci.yml` automatise les vérifications qualité sur
 - Validation syntaxique et stricte du fichier `composer.json`.
 - Exécution de la suite complète de 50 tests automatisés (unitaires et fonctionnels HTTP) sur les versions PHP 8.2 et 8.3.
 
+
+## Refactorisation : sessions, contrôleurs et stratégies
+
+- **Responsabilité unique** : `SessionManager` gère la session PHP ; `CsrfService` crée et vérifie les jetons ; `AuthService` authentifie. `HtmlResponseStrategy` rend les templates, `JsonResponseStrategy` sérialise les données. Les vues ne recherchent plus l’utilisateur dans Eloquent.
+- **Ouvert/fermé** : `ResponseStrategyInterface` permet une nouvelle représentation sans modifier les actions métier. La table de stratégies du conteneur sélectionne exclusivement `APP_RESPONSE_FORMAT` au démarrage.
+- **Substitution** : les stratégies de réponse partagent `render()` et `redirect()` ; les stratégies transactionnelles partagent `execute()`. L’implémentation en mémoire reste limitée aux tests.
+- **Ségrégation des interfaces** : les contrats de session, de réponse, de transaction et de repository sont séparés. Les contrôleurs ne reçoivent pas le conteneur.
+- **Inversion des dépendances** : les services de réservation reçoivent `TransactionStrategyInterface` et les contrats de repositories. `EloquentTransactionStrategy` exécute la transaction réelle ; aucune exception technique n’entraîne une nouvelle tentative hors transaction.
+
+`AbstractController` mutualise rendu, erreurs, redirections et flash. `SalleService` prend en charge la création et la modification à partir du DTO validé. Le routeur reste responsable de la résolution des contrôleurs via PHP-DI conformément à l’étape 10 d’ODC-P8 ; les dépendances des services sont injectées par constructeur.
+
+Les anciennes classes `Api*Controller` ont été remplacées par des alias de routes. Le préfixe `/api/` ne sélectionne plus un format et ne contourne plus les middlewares. La pagination maison a été supprimée au profit d’Eloquent. La déconnexion est une mutation POST protégée par CSRF.
+
+Le format JSON expose une enveloppe commune et les erreurs HTTP avec `success=false`. Les succès HTML conservent les redirections et les formulaires avec leurs erreurs. Les clients des anciennes routes API doivent adopter la session, le token et l’enveloppe commune.
+
+```mermaid
+classDiagram
+    AbstractController <|-- SalleController
+    AbstractController <|-- ReservationController
+    AbstractController <|-- AuthController
+    AbstractController <|-- DashboardController
+    AbstractController --> ViewRenderer
+    ViewRenderer --> ResponseStrategyInterface
+    ResponseStrategyInterface <|.. HtmlResponseStrategy
+    ResponseStrategyInterface <|.. JsonResponseStrategy
+    SessionManagerInterface <|.. SessionManager
+    AuthService --> SessionManagerInterface
+    CsrfService --> SessionManagerInterface
+    SalleController --> SalleService
+    CreerReservationService --> TransactionStrategyInterface
+    AnnulerReservationService --> TransactionStrategyInterface
+    TransactionStrategyInterface <|.. EloquentTransactionStrategy
+    CreerReservationService --> SalleRepositoryInterface
+    SalleRepositoryInterface <|.. EloquentSalleRepository
+```
