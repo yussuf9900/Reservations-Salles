@@ -8,8 +8,8 @@
             $params = $queryParams ?? [];
             ?>
 
-            <?php if ($paginator->hasPreviousPage()): ?>
-                <?php $params['page'] = $paginator->previousPage(); ?>
+            <?php if (!$paginator->onFirstPage()): ?>
+                <?php $params['page'] = ($paginator->currentPage() - 1); ?>
                 <li>
                     <a href="<?= htmlspecialchars($baseUrl) . '?' . http_build_query($params) ?>" class="btn btn-sm btn-outline">
                         Précédent
@@ -26,8 +26,8 @@
                 </li>
             <?php endfor; ?>
 
-            <?php if ($paginator->hasNextPage()): ?>
-                <?php $params['page'] = $paginator->nextPage(); ?>
+            <?php if ($paginator->hasMorePages()): ?>
+                <?php $params['page'] = ($paginator->currentPage() + 1); ?>
                 <li>
                     <a href="<?= htmlspecialchars($baseUrl) . '?' . http_build_query($params) ?>" class="btn btn-sm btn-outline">
                         Suivant

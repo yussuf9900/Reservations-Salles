@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Model\Reservation;
-use App\Pagination\Paginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use DateTimeInterface;
 
 class EloquentReservationRepository implements ReservationRepositoryInterface
@@ -63,7 +63,7 @@ class EloquentReservationRepository implements ReservationRepositoryInterface
         return $query->first();
     }
 
-    public function search(array $criteres = [], int $page = 1, int $perPage = 8): Paginator
+    public function search(array $criteres = [], int $page = 1, int $perPage = 8): LengthAwarePaginator
     {
         $query = Reservation::with('salle');
 
@@ -88,13 +88,6 @@ class EloquentReservationRepository implements ReservationRepositoryInterface
             $query->whereDate('date_debut', $criteres['date']);
         }
 
-        $total = $query->count();
-        $items = $query->orderBy('date_debut', 'desc')
-            ->offset(($page - 1) * $perPage)
-            ->limit($perPage)
-            ->get()
-            ->all();
-
-        return new Paginator($items, $total, $perPage, $page);
+        return $query->orderBy('date_debut', 'desc')->orderBy('id')->paginate(max(1, $perPage), ['*'], 'page', max(1, $page))->withPath('/reservations');
     }
 }

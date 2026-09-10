@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Model\Salle;
-use App\Pagination\Paginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class EloquentSalleRepository implements SalleRepositoryInterface
 {
@@ -17,6 +17,11 @@ class EloquentSalleRepository implements SalleRepositoryInterface
     public function findById(int $id): ?Salle
     {
         return Salle::find($id);
+    }
+
+    public function findByIdForUpdate(int $id): ?Salle
+    {
+        return Salle::whereKey($id)->lockForUpdate()->first();
     }
 
     public function save(Salle $salle): bool
@@ -35,7 +40,7 @@ class EloquentSalleRepository implements SalleRepositoryInterface
         return $salle->save();
     }
 
-    public function search(array $criteres = [], int $page = 1, int $perPage = 6): Paginator
+    public function search(array $criteres = [], int $page = 1, int $perPage = 6): LengthAwarePaginator
     {
         $query = Salle::query();
 
@@ -69,13 +74,6 @@ class EloquentSalleRepository implements SalleRepositoryInterface
             });
         }
 
-        $total = $query->count();
-        $items = $query->orderBy('nom', 'asc')
-            ->offset(($page - 1) * $perPage)
-            ->limit($perPage)
-            ->get()
-            ->all();
-
-        return new Paginator($items, $total, $perPage, $page);
+        return $query->orderBy('nom', 'asc')->orderBy('id')->paginate(max(1, $perPage), ['*'], 'page', max(1, $page))->withPath('/salles');
     }
 }

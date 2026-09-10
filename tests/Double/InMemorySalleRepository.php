@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Double;
 
 use App\Model\Salle;
-use App\Pagination\Paginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repository\SalleRepositoryInterface;
 
 class InMemorySalleRepository implements SalleRepositoryInterface
@@ -21,6 +21,11 @@ class InMemorySalleRepository implements SalleRepositoryInterface
     public function findById(int $id): ?Salle
     {
         return $this->salles[$id] ?? null;
+    }
+
+    public function findByIdForUpdate(int $id): ?Salle
+    {
+        return $this->findById($id);
     }
 
     public function save(Salle $salle): bool
@@ -41,7 +46,7 @@ class InMemorySalleRepository implements SalleRepositoryInterface
         return true;
     }
 
-    public function search(array $criteres = [], int $page = 1, int $perPage = 6): Paginator
+    public function search(array $criteres = [], int $page = 1, int $perPage = 6): LengthAwarePaginator
     {
         $filtered = array_values(array_filter($this->salles, function (Salle $salle) use ($criteres) {
             if (!empty($criteres['q'])) {
@@ -74,6 +79,6 @@ class InMemorySalleRepository implements SalleRepositoryInterface
         $offset = ($page - 1) * $perPage;
         $items = array_slice($filtered, $offset, $perPage);
 
-        return new Paginator($items, $total, $perPage, $page);
+        return new \Illuminate\Pagination\LengthAwarePaginator($items, $total, $perPage, $page);
     }
 }

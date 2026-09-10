@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Model\Reservation;
-use App\Pagination\Paginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use DateTimeInterface;
 
 interface ReservationRepositoryInterface
@@ -27,5 +27,5 @@ interface ReservationRepositoryInterface
         ?int $exclureId = null
     ): ?Reservation;
 
-    public function search(array $criteres = [], int $page = 1, int $perPage = 8): Paginator;
+    public function search(array $criteres = [], int $page = 1, int $perPage = 8): LengthAwarePaginator;
 }

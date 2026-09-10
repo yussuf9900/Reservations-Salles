@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Double;
 
 use App\Model\Reservation;
-use App\Pagination\Paginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Repository\ReservationRepositoryInterface;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -87,7 +87,7 @@ class InMemoryReservationRepository implements ReservationRepositoryInterface
         return null;
     }
 
-    public function search(array $criteres = [], int $page = 1, int $perPage = 8): Paginator
+    public function search(array $criteres = [], int $page = 1, int $perPage = 8): LengthAwarePaginator
     {
         $filtered = array_values(array_filter($this->reservations, function (Reservation $r) use ($criteres) {
             if (!empty($criteres['salle_id']) && (int)$r->salle_id !== (int)$criteres['salle_id']) {
@@ -124,6 +124,6 @@ class InMemoryReservationRepository implements ReservationRepositoryInterface
         $offset = ($page - 1) * $perPage;
         $items = array_slice($filtered, $offset, $perPage);
 
-        return new Paginator($items, $total, $perPage, $page);
+        return new \Illuminate\Pagination\LengthAwarePaginator($items, $total, $perPage, $page);
     }
 }
