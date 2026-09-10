@@ -6,14 +6,12 @@ namespace App\Service;
 
 use App\Exception\ReservationIntrouvableException;
 use App\Repository\ReservationRepositoryInterface;
-use Illuminate\Database\Capsule\Manager as Capsule;
-use PDO;
-use Throwable;
 
 final class AnnulerReservationService
 {
     public function __construct(
         private readonly ReservationRepositoryInterface $reservations,
+        private readonly TransactionStrategyInterface $transactions,
         private readonly ?LoggerService $logger = null
     ) {
     }
@@ -37,21 +35,6 @@ final class AnnulerReservationService
             return $result;
         };
 
-        try {
-            if (class_exists(Capsule::class)) {
-                $capsule = Capsule::getInstance();
-                if ($capsule !== null) {
-                    $connection = $capsule->getConnection();
-                    if ($connection->getPdo() instanceof PDO) {
-                        return $connection->transaction($action);
-                    }
-                }
-            }
-        } catch (ReservationIntrouvableException $e) {
-            throw $e;
-        } catch (Throwable) {
-        }
-
-        return $action();
+        return $this->transactions->execute($action);
     }
 }

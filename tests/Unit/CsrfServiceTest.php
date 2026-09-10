@@ -14,7 +14,7 @@ class CsrfServiceTest extends TestCase
     protected function setUp(): void
     {
         $_SESSION = [];
-        $this->csrf = new CsrfService();
+        $this->csrf = new CsrfService(new \App\Session\SessionManager());
     }
 
     public function testGetTokenGeneratesUniqueString(): void

@@ -6,39 +6,31 @@ namespace App\Service;
 
 class CsrfService
 {
-    public function __construct()
+    public function __construct(private readonly \App\Session\SessionManagerInterface $session)
     {
-        $this->ensureSessionStarted();
-    }
-
-    private function ensureSessionStarted(): void
-    {
-        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-            session_start();
-        }
     }
 
     public function getToken(): string
     {
-        if (empty($_SESSION['_csrf_token'])) {
-            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+        if (!$this->session->get('_csrf_token')) {
+            $this->session->set('_csrf_token', bin2hex(random_bytes(32)));
         }
 
-        return $_SESSION['_csrf_token'];
+        return $this->session->get('_csrf_token');
     }
 
     public function validateToken(?string $token): bool
     {
-        if ($token === null || empty($_SESSION['_csrf_token'])) {
+        if ($token === null || !$this->session->get('_csrf_token')) {
             return false;
         }
 
-        return hash_equals($_SESSION['_csrf_token'], $token);
+        return hash_equals($this->session->get('_csrf_token'), $token);
     }
 
     public function regenerateToken(): string
     {
-        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
-        return $_SESSION['_csrf_token'];
+        $this->session->set('_csrf_token', bin2hex(random_bytes(32)));
+        return $this->session->get('_csrf_token');
     }
 }

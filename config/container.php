@@ -3,9 +3,6 @@
 declare(strict_types=1);
 
 use App\Application;
-use App\Controller\Api\ApiDashboardController;
-use App\Controller\Api\ApiReservationController;
-use App\Controller\Api\ApiSalleController;
 use App\Controller\AuthController;
 use App\Controller\DashboardController;
 use App\Controller\ReservationController;
@@ -36,6 +33,7 @@ use function DI\autowire;
 use function DI\factory;
 
 return [
+    \App\Service\TransactionStrategyInterface::class => autowire(\App\Repository\EloquentTransactionStrategy::class),
     Capsule::class => factory(function (): Capsule {
         $initDb = require __DIR__ . '/database.php';
         return $initDb();
@@ -64,9 +62,19 @@ return [
     CreerReservationService::class => autowire(CreerReservationService::class),
     AnnulerReservationService::class => autowire(AnnulerReservationService::class),
 
-    ViewRenderer::class => factory(function (ContainerInterface $c): ViewRenderer {
-        return new ViewRenderer($c->get(CsrfService::class));
+    \App\Session\SessionManagerInterface::class => autowire(\App\Session\SessionManager::class),
+    \App\Http\Strategy\ResponseStrategyInterface::class => factory(function (ContainerInterface $c): \App\Http\Strategy\ResponseStrategyInterface {
+        $format = strtolower(trim((string)($_ENV['APP_RESPONSE_FORMAT'] ?? 'html')));
+        $strategies = [
+            'html' => \App\Http\Strategy\HtmlResponseStrategy::class,
+            'json' => \App\Http\Strategy\JsonResponseStrategy::class,
+        ];
+        if (!isset($strategies[$format])) {
+            throw new \InvalidArgumentException('APP_RESPONSE_FORMAT doit être html ou json.');
+        }
+        return $c->get($strategies[$format]);
     }),
+    ViewRenderer::class => autowire(),
 
     LoggingMiddleware::class => autowire(LoggingMiddleware::class),
     CsrfMiddleware::class => autowire(CsrfMiddleware::class),
@@ -76,9 +84,6 @@ return [
     ReservationController::class => autowire(ReservationController::class),
     AuthController::class => autowire(AuthController::class),
     DashboardController::class => autowire(DashboardController::class),
-    ApiSalleController::class => autowire(ApiSalleController::class),
-    ApiReservationController::class => autowire(ApiReservationController::class),
-    ApiDashboardController::class => autowire(ApiDashboardController::class),
 
     Dispatcher::class => factory(function (): Dispatcher {
         $routesCallback = require dirname(__DIR__) . '/routes/web.php';

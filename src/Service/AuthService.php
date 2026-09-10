@@ -12,16 +12,10 @@ class AuthService
     private ?User $currentUser = null;
 
     public function __construct(
-        private readonly UserRepositoryInterface $users
+        private readonly UserRepositoryInterface $users,
+        private readonly \App\Session\SessionManagerInterface $session,
+        private readonly CsrfService $csrf
     ) {
-        $this->ensureSessionStarted();
-    }
-
-    private function ensureSessionStarted(): void
-    {
-        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-            session_start();
-        }
     }
 
     public function login(string $email, string $password): bool
@@ -35,7 +29,9 @@ class AuthService
             return false;
         }
 
-        $_SESSION['user_id'] = $user->id;
+        $this->session->regenerate();
+        $this->session->set('user_id', $user->id);
+        $this->csrf->regenerateToken();
         $this->currentUser = $user;
         return true;
     }
@@ -48,24 +44,26 @@ class AuthService
             return false;
         }
 
-        $_SESSION['user_id'] = $user->id;
+        $this->session->regenerate();
+        $this->session->set('user_id', $user->id);
+        $this->csrf->regenerateToken();
         $this->currentUser = $user;
         return true;
     }
 
     public function logout(): void
     {
-        unset($_SESSION['user_id']);
+        $this->session->destroy();
         $this->currentUser = null;
     }
 
     public function user(): ?User
     {
-        if ($this->currentUser !== null) {
+        if ($this->currentUser !== null && $this->currentUser->id === $this->session->get('user_id')) {
             return $this->currentUser;
         }
 
-        $userId = $_SESSION['user_id'] ?? null;
+        $userId = $this->session->get('user_id');
         if ($userId === null) {
             return null;
         }

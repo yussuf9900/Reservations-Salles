@@ -14,13 +14,14 @@ use PHPUnit\Framework\TestCase;
 
 class EloquentIntegrationTest extends TestCase
 {
+    private \Illuminate\Database\Capsule\Manager $database;
     private EloquentSalleRepository $salleRepo;
     private EloquentReservationRepository $reservationRepo;
 
     protected function setUp(): void
     {
         $initDb = require dirname(__DIR__, 2) . '/config/database.php';
-        $initDb();
+        $this->database = $initDb();
 
         $this->salleRepo = new EloquentSalleRepository();
         $this->reservationRepo = new EloquentReservationRepository();
@@ -120,5 +121,51 @@ class EloquentIntegrationTest extends TestCase
         );
 
         $this->assertNull($conflitApresAnnulation, 'Une réservation annulée ne doit plus bloquer la salle.');
+    }
+    public function testFilteredPaginationAndTransactionRollback(): void
+    {
+        $database = $this->database;
+        $connection = $database->getConnection();
+        $connection->beginTransaction();
+        $prefix = 'Pagination-' . uniqid();
+        try {
+            for ($i = 0; $i < 9; $i++) {
+                $this->salleRepo->save(new Salle([
+                    'nom' => $prefix . '-' . $i, 'batiment' => 'Test',
+                    'capacite' => 30, 'type' => 'cours', 'active' => true,
+                ]));
+            }
+            $first = $this->salleRepo->search(['q' => $prefix], 1, 6);
+            $second = $this->salleRepo->search(['q' => $prefix], 2, 6);
+            $this->assertSame(9, $first->total());
+            $this->assertCount(6, $first->items());
+            $this->assertCount(3, $second->items());
+            $this->assertSame([], array_intersect(array_column($first->items(), 'id'), array_column($second->items(), 'id')));
+            $this->assertCount(0, $this->salleRepo->search(['q' => $prefix], 4, 6)->items());
+            $this->assertSame(1, $this->salleRepo->search(['q' => $prefix], 0, 6)->currentPage());
+            $this->assertSame(0, $this->salleRepo->search(['q' => $prefix . '-absent'])->total());
+        } finally {
+            $connection->rollBack();
+        }
+        $this->assertSame(0, $this->salleRepo->search(['q' => $prefix])->total());
+    }
+
+    public function testTransactionFailureIsRolledBack(): void
+    {
+        $strategy = new \App\Repository\EloquentTransactionStrategy($this->database);
+        $prefix = 'Rollback-' . uniqid();
+        try {
+            $strategy->execute(function () use ($prefix): void {
+                $this->salleRepo->save(new Salle([
+                    'nom' => $prefix, 'batiment' => 'Test', 'capacite' => 30,
+                    'type' => 'cours', 'active' => true,
+                ]));
+                throw new \RuntimeException('rollback');
+            });
+            $this->fail('La transaction doit propager son erreur.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('rollback', $e->getMessage());
+        }
+        $this->assertSame(0, $this->salleRepo->search(['q' => $prefix])->total());
     }
 }

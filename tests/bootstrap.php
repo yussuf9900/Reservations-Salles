@@ -24,3 +24,6 @@ $resolver = new ConnectionResolver([
 ]);
 $resolver->setDefaultConnection('default');
 Model::setConnectionResolver($resolver);
+
+session_save_path(sys_get_temp_dir());
+(new \App\Session\SessionManager())->start();

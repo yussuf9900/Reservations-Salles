@@ -20,14 +20,10 @@ class CsrfMiddleware implements MiddlewareInterface
         $method = strtoupper($request['method'] ?? 'GET');
         $uri = $request['uri'] ?? '/';
 
-        if (str_starts_with($uri, '/api/')) {
-            return $next($request);
-        }
-
-        if ($method === 'POST') {
+        if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             $token = $_POST['_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
 
-            if (!$this->csrf->validateToken($token)) {
+            if (!$this->csrf->validateToken(is_string($token) ? $token : null)) {
                 http_response_code(403);
                 return $this->view->render('error/403', [
                     'title'          => 'Session expirée ou requête invalide (CSRF)',
