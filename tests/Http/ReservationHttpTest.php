@@ -59,25 +59,25 @@ class ReservationHttpTest extends HttpTestCase
         $this->assertSame(404, $res['status']);
     }
 
-    public function testApiGetReservationsReturnsJson(): void
+    public function testApiAliasUsesHtmlAndAuthentication(): void
     {
+        $this->loginAsAdmin();
         $res = $this->request('GET', '/api/reservations');
-
         $this->assertSame(200, $res['status']);
-        $json = json_decode($res['body'], true);
-        $this->assertIsArray($json);
-        $this->assertArrayHasKey('data', $json);
-        $this->assertArrayHasKey('meta', $json);
+        $this->assertStringContainsString('<!DOCTYPE html>', $res['body']);
     }
 
     public function testApiReservationStoreValidation(): void
     {
-        $res = $this->request('POST', '/api/reservations', []);
+        $this->format = 'json';
+        $this->setUp();
+        $this->loginAsAdmin();
+        $res = $this->request('POST', '/api/reservations', ['_token' => $this->csrf->getToken()]);
 
         $this->assertSame(422, $res['status']);
         $json = json_decode($res['body'], true);
-        $this->assertTrue($json['error']);
-        $this->assertArrayHasKey('errors', $json);
+        $this->assertFalse($json['success']);
+        $this->assertArrayHasKey('errors', $json['data']);
     }
 
     public function testReservationFormHasValidCsrfTokenAndPrefillsUserWhenLoggedIn(): void

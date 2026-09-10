@@ -7,19 +7,16 @@ namespace App\Service;
 use App\DTO\CreerReservationDTO;
 use App\Exception\SalleIndisponibleException;
 use App\Model\Reservation;
-use App\Model\Salle;
 use App\Repository\ReservationRepositoryInterface;
 use App\Repository\SalleRepositoryInterface;
 use DateTimeImmutable;
-use Illuminate\Database\Capsule\Manager as Capsule;
-use PDO;
-use Throwable;
 
 final class CreerReservationService
 {
     public function __construct(
         private readonly SalleRepositoryInterface $salles,
         private readonly ReservationRepositoryInterface $reservations,
+        private readonly TransactionStrategyInterface $transactions,
         private readonly ?LoggerService $logger = null
     ) {
     }
@@ -27,7 +24,7 @@ final class CreerReservationService
     public function execute(CreerReservationDTO $dto): Reservation
     {
         $action = function () use ($dto): Reservation {
-            $salle = $this->salles->findById($dto->salleId);
+            $salle = $this->salles->findByIdForUpdate($dto->salleId);
             if ($salle === null) {
                 throw new SalleIndisponibleException("La salle sélectionnée n'existe pas.");
             }
@@ -79,24 +76,6 @@ final class CreerReservationService
             return $reservation;
         };
 
-        try {
-            if (class_exists(Capsule::class)) {
-                $capsule = Capsule::getInstance();
-                if ($capsule !== null) {
-                    $connection = $capsule->getConnection();
-                    if ($connection->getPdo() instanceof PDO) {
-                        return $connection->transaction(function () use ($dto, $action) {
-                            Salle::where('id', $dto->salleId)->lockForUpdate()->first();
-                            return $action();
-                        });
-                    }
-                }
-            }
-        } catch (SalleIndisponibleException $e) {
-            throw $e;
-        } catch (Throwable) {
-        }
-
-        return $action();
+        return $this->transactions->execute($action);
     }
 }

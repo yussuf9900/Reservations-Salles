@@ -7,6 +7,8 @@ use DI\ContainerBuilder;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+\Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
+
 $builder = new ContainerBuilder();
 $builder->addDefinitions(
     dirname(__DIR__) . '/config/container.php'

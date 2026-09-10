@@ -6,117 +6,79 @@ namespace Tests\Http;
 
 class MultiformatHttpTest extends HttpTestCase
 {
-    private ?string $originalEnvFormat = null;
-
-    protected function setUp(): void
+    public function testHtmlIgnoresQueryAndAccept(): void
     {
-        parent::setUp();
         $this->loginAsAdmin();
-        $this->originalEnvFormat = $_ENV['APP_RESPONSE_FORMAT'] ?? null;
-        $_ENV['APP_RESPONSE_FORMAT'] = 'html';
+        $res = $this->request('GET', '/salles?format=json', [], ['HTTP_ACCEPT' => 'application/json']);
+        $this->assertSame(200, $res['status']);
+        $this->assertStringContainsString('<!DOCTYPE html>', $res['body']);
+        $this->assertStringNotContainsString('format=', $res['body']);
     }
 
-    protected function tearDown(): void
+    public function testJsonIgnoresQueryAndAcceptOnBothRoutes(): void
     {
-        if ($this->originalEnvFormat !== null) {
-            $_ENV['APP_RESPONSE_FORMAT'] = $this->originalEnvFormat;
-        } else {
-            unset($_ENV['APP_RESPONSE_FORMAT']);
+        $this->format = 'json';
+        $this->setUp();
+        $this->loginAsAdmin();
+        foreach (['/salles', '/api/salles', '/reservations', '/api/reservations'] as $url) {
+            $res = $this->request('GET', $url . '?format=html', [], ['HTTP_ACCEPT' => 'text/html']);
+            $this->assertSame(200, $res['status']);
+            $this->assertSame('json', json_decode($res['body'], true)['format']);
         }
-        parent::tearDown();
     }
 
-    public function testUnauthenticatedWithFormatJsonReturns401(): void
+    public function testJsonErrorsAndLoginToken(): void
     {
-        $this->logoutUser();
-        $res = $this->request('GET', '/salles?format=json');
-
-        $this->assertSame(401, $res['status']);
-        $json = json_decode($res['body'], true);
-        $this->assertIsArray($json);
-        $this->assertTrue($json['error']);
-        $this->assertStringContainsString('Authentification requise', $json['message']);
+        $this->format = 'json';
+        $this->setUp();
+        foreach (['/salles', '/api/salles'] as $url) {
+            $this->assertSame(401, $this->request('GET', $url)['status']);
+        }
+        $login = json_decode($this->request('GET', '/login')['body'], true);
+        $token = $login['data']['csrf_token'];
+        $this->assertTrue($this->csrf->validateToken($token));
+        $this->assertSame(403, $this->request('POST', '/api/salles')['status']);
+        $this->assertSame(404, $this->request('GET', '/inconnue')['status']);
+        $this->assertSame(405, $this->request('DELETE', '/salles')['status']);
+        $this->loginAsResponsable();
+        $this->assertSame(403, $this->request('POST', '/api/salles', [], ['HTTP_X_CSRF_TOKEN' => $token])['status']);
     }
 
-    public function testDefaultFormatIsHtml(): void
+    public function testLoginRotatesSessionAndTokenAndLogoutInvalidatesThem(): void
     {
-        $res = $this->request('GET', '/salles');
-
+        $this->format = 'json';
+        $this->setUp();
+        $oldId = session_id();
+        $oldToken = $this->csrf->getToken();
+        $res = $this->request('POST', '/login', [
+            'email' => 'admin@univ.sn', 'password' => 'admin123', '_token' => $oldToken,
+        ]);
         $this->assertSame(200, $res['status']);
-        $this->assertStringContainsString('<!DOCTYPE html>', $res['body']);
-        $this->assertStringContainsString('Salle 101', $res['body']);
+        $this->assertNotSame($oldId, session_id());
+        $this->assertFalse($this->csrf->validateToken($oldToken));
+        $newToken = json_decode($res['body'], true)['data']['csrf_token'];
+        $this->assertTrue($this->csrf->validateToken($newToken));
+        $this->assertSame(200, $this->request('POST', '/logout', ['_token' => $newToken])['status']);
+        $this->assertFalse($this->auth->check());
+        $this->assertFalse($this->csrf->validateToken($newToken));
     }
-
-    public function testQueryParamFormatJsonReturnsJson(): void
+    public function testUnexpectedErrorUsesConfiguredStrategy(): void
     {
-        $res = $this->request('GET', '/salles?format=json');
-
-        $this->assertSame(200, $res['status']);
-        $json = json_decode($res['body'], true);
-        $this->assertIsArray($json, 'La réponse doit être un JSON valide');
-        $this->assertTrue($json['success']);
-        $this->assertSame('json', $json['format']);
-        $this->assertSame('salle/index', $json['view']);
-        $this->assertArrayHasKey('data', $json);
-        $this->assertArrayHasKey('salles', $json['data']);
-    }
-
-    public function testReservationsQueryParamFormatJsonReturnsJson(): void
-    {
-        $res = $this->request('GET', '/reservations?format=json');
-
-        $this->assertSame(200, $res['status']);
-        $json = json_decode($res['body'], true);
-        $this->assertIsArray($json, 'La réponse doit être un JSON valide');
-        $this->assertTrue($json['success']);
-        $this->assertSame('json', $json['format']);
-        $this->assertSame('reservation/index', $json['view']);
-        $this->assertArrayHasKey('data', $json);
-        $this->assertArrayHasKey('reservations', $json['data']);
-    }
-
-    public function testEnvAppResponseFormatJsonReturnsJsonByDefault(): void
-    {
-        $_ENV['APP_RESPONSE_FORMAT'] = 'json';
-
-        $res = $this->request('GET', '/salles');
-
-        $this->assertSame(200, $res['status']);
-        $json = json_decode($res['body'], true);
-        $this->assertIsArray($json);
-        $this->assertTrue($json['success']);
-        $this->assertSame('json', $json['format']);
-        $this->assertSame('salle/index', $json['view']);
-    }
-
-    public function testQueryParamOverridesEnvFormat(): void
-    {
-        $_ENV['APP_RESPONSE_FORMAT'] = 'json';
-
-        $res = $this->request('GET', '/salles?format=html');
-
-        $this->assertSame(200, $res['status']);
-        $this->assertStringContainsString('<!DOCTYPE html>', $res['body']);
-    }
-
-    public function testHttpAcceptHeaderReturnsJson(): void
-    {
-        $res = $this->request('GET', '/salles', [], ['HTTP_ACCEPT' => 'application/json']);
-
-        $this->assertSame(200, $res['status']);
-        $json = json_decode($res['body'], true);
-        $this->assertIsArray($json);
-        $this->assertSame('json', $json['format']);
-    }
-
-    public function testNotFoundReturnsJsonWhenRequested(): void
-    {
-        $res = $this->request('GET', '/route-inexistante-404?format=json');
-
-        $this->assertSame(404, $res['status']);
-        $json = json_decode($res['body'], true);
-        $this->assertIsArray($json);
-        $this->assertTrue($json['error']);
-        $this->assertStringContainsString('introuvable', $json['message']);
+        foreach (['html', 'json'] as $format) {
+            $this->format = $format;
+            $this->setUp();
+            $this->loginAsAdmin();
+            $controller = $this->createMock(\App\Controller\SalleController::class);
+            $controller->method('index')->willThrowException(new \RuntimeException('private database detail'));
+            $this->container->set(\App\Controller\SalleController::class, $controller);
+            $res = $this->request('GET', '/salles');
+            $this->assertSame(500, $res['status']);
+            $this->assertStringNotContainsString('private database detail', $res['body']);
+            if ($format === 'json') {
+                $this->assertFalse(json_decode($res['body'], true)['success']);
+            } else {
+                $this->assertStringContainsString('<!DOCTYPE html>', $res['body']);
+            }
+        }
     }
 }

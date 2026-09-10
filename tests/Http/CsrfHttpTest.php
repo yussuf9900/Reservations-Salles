@@ -20,10 +20,10 @@ class CsrfHttpTest extends HttpTestCase
         $this->assertStringContainsString('CSRF', $res['body']);
     }
 
-    public function testApiPostBypassesCsrfMiddleware(): void
+    public function testApiPostRequiresCsrfToken(): void
     {
         $res = $this->request('POST', '/api/salles', []);
 
-        $this->assertSame(422, $res['status']);
+        $this->assertSame(403, $res['status']);
     }
 }

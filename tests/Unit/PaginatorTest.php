@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use App\Pagination\Paginator;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use PHPUnit\Framework\TestCase;
 
 class PaginatorTest extends TestCase
@@ -19,22 +19,22 @@ class PaginatorTest extends TestCase
         $this->assertSame(10, $paginator->perPage());
         $this->assertSame(2, $paginator->currentPage());
         $this->assertSame(3, $paginator->lastPage());
-        $this->assertTrue($paginator->hasPreviousPage());
-        $this->assertTrue($paginator->hasNextPage());
-        $this->assertSame(1, $paginator->previousPage());
-        $this->assertSame(3, $paginator->nextPage());
+        $this->assertTrue(!$paginator->onFirstPage());
+        $this->assertTrue($paginator->hasMorePages());
+        $this->assertSame(1, $paginator->currentPage() - 1);
+        $this->assertSame(3, $paginator->currentPage() + 1);
 
         $array = $paginator->toArray();
-        $this->assertSame(25, $array['meta']['total']);
-        $this->assertSame(3, $array['meta']['last_page']);
+        $this->assertSame(25, $array['total']);
+        $this->assertSame(3, $array['last_page']);
     }
 
     public function testPaginationFirstPage(): void
     {
         $paginator = new Paginator(['item'], 5, 5, 1);
 
-        $this->assertFalse($paginator->hasPreviousPage());
-        $this->assertFalse($paginator->hasNextPage());
+        $this->assertFalse(!$paginator->onFirstPage());
+        $this->assertFalse($paginator->hasMorePages());
         $this->assertSame(1, $paginator->lastPage());
     }
 }

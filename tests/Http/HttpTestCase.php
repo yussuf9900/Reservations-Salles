@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Tests\Http;
 
 use App\Application;
-use App\Controller\Api\ApiDashboardController;
-use App\Controller\Api\ApiReservationController;
-use App\Controller\Api\ApiSalleController;
 use App\Controller\AuthController;
 use App\Controller\DashboardController;
 use App\Controller\ReservationController;
@@ -38,6 +35,7 @@ use Tests\Double\InMemorySalleRepository;
 
 abstract class HttpTestCase extends TestCase
 {
+    protected string $format = 'html';
     protected Container $container;
     protected Application $app;
     protected InMemorySalleRepository $salleRepo;
@@ -113,25 +111,26 @@ abstract class HttpTestCase extends TestCase
             }
         };
 
-        $this->csrf = new CsrfService();
-        $this->auth = new AuthService($this->userRepo);
+        $session = new \App\Session\SessionManager();
+        $this->csrf = new CsrfService($session);
+        $this->auth = new AuthService($this->userRepo, $session, $this->csrf);
         $logger = new LoggerService(sys_get_temp_dir() . '/test_app.log');
 
-        $view = new ViewRenderer();
+        $strategy = $this->format === 'json'
+            ? new \App\Http\Strategy\JsonResponseStrategy($session)
+            : new \App\Http\Strategy\HtmlResponseStrategy($session, $this->csrf, $this->auth);
+        $view = new ViewRenderer($strategy, $session);
         $salleValidator = new SalleValidator();
         $resValidator = new ReservationValidator();
-        $creerResService = new CreerReservationService($this->salleRepo, $this->reservationRepo, $logger);
-        $annulerResService = new AnnulerReservationService($this->reservationRepo, $logger);
+        $creerResService = new CreerReservationService($this->salleRepo, $this->reservationRepo, new \Tests\Double\InMemoryTransactionStrategy(), $logger);
+        $annulerResService = new AnnulerReservationService($this->reservationRepo, new \Tests\Double\InMemoryTransactionStrategy(), $logger);
         $statsService = new StatistiquesService($this->salleRepo, $this->reservationRepo);
 
-        $salleCtrl = new SalleController($this->salleRepo, $salleValidator, $view, $this->csrf, $this->auth);
+        $salleCtrl = new SalleController($this->salleRepo, $salleValidator, $view, $this->csrf, $this->auth, new \App\Service\SalleService($this->salleRepo));
         $resCtrl = new ReservationController($this->reservationRepo, $this->salleRepo, $resValidator, $creerResService, $annulerResService, $view, $this->csrf, $this->auth);
         $authCtrl = new AuthController($this->auth, $this->csrf, $view);
         $dashCtrl = new DashboardController($statsService, $this->auth, $view);
 
-        $apiSalleCtrl = new ApiSalleController($this->salleRepo, $salleValidator);
-        $apiResCtrl = new ApiReservationController($this->reservationRepo, $resValidator, $creerResService, $annulerResService);
-        $apiDashCtrl = new ApiDashboardController($statsService);
 
         $routesCallback = require dirname(__DIR__, 2) . '/routes/web.php';
         $dispatcher = \FastRoute\simpleDispatcher(function (RouteCollector $r) use ($routesCallback): void {
@@ -143,9 +142,6 @@ abstract class HttpTestCase extends TestCase
         $this->container->set(ReservationController::class, $resCtrl);
         $this->container->set(AuthController::class, $authCtrl);
         $this->container->set(DashboardController::class, $dashCtrl);
-        $this->container->set(ApiSalleController::class, $apiSalleCtrl);
-        $this->container->set(ApiReservationController::class, $apiResCtrl);
-        $this->container->set(ApiDashboardController::class, $apiDashCtrl);
 
         $middlewares = [
             new LoggingMiddleware($logger),

@@ -9,6 +9,14 @@ use DateTimeImmutable;
 
 class ApiHttpTest extends HttpTestCase
 {
+    protected string $format = 'json';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->loginAsAdmin();
+    }
+
     public function testGetApiStatsReturns200(): void
     {
         $res = $this->request('GET', '/api/stats');
@@ -16,9 +24,9 @@ class ApiHttpTest extends HttpTestCase
         $this->assertSame(200, $res['status']);
         $json = json_decode($res['body'], true);
         $this->assertIsArray($json);
-        $this->assertArrayHasKey('total_salles', $json);
-        $this->assertArrayHasKey('top_salles', $json);
-        $this->assertArrayHasKey('taux_occupation', $json);
+        $this->assertArrayHasKey('total_salles', $json['data']['stats']);
+        $this->assertArrayHasKey('top_salles', $json['data']['stats']);
+        $this->assertArrayHasKey('taux_occupation', $json['data']['stats']);
     }
 
     public function testApiCancelReservation(): void
@@ -36,7 +44,7 @@ class ApiHttpTest extends HttpTestCase
         ]);
         $this->reservationRepo->save($reservation);
 
-        $res = $this->request('POST', "/api/reservations/{$reservation->id}/cancel");
+        $res = $this->request('POST', "/api/reservations/{$reservation->id}/cancel", ['_token' => $this->csrf->getToken()]);
 
         $this->assertSame(200, $res['status']);
         $json = json_decode($res['body'], true);
@@ -48,7 +56,7 @@ class ApiHttpTest extends HttpTestCase
 
     public function testApiCancelNotFoundReturns404(): void
     {
-        $res = $this->request('POST', '/api/reservations/99999/cancel');
+        $res = $this->request('POST', '/api/reservations/99999/cancel', ['_token' => $this->csrf->getToken()]);
 
         $this->assertSame(404, $res['status']);
     }

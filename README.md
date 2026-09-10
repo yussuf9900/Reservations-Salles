@@ -6,6 +6,8 @@ L'application est construite **sans framework complet**, en assemblant des compo
 
 ---
 
+Version courante : **v1.4.0**. Les changements de compatibilité sont détaillés dans [CHANGELOG.md](CHANGELOG.md).
+
 ## Architecture & Composants Clés
 
 - **Front Controller & Bootstrap** : `public/index.php` et `App\Application`
@@ -66,7 +68,7 @@ ou via le script dédié :
 ```
 
 - **Application Web** : accessible sur **http://localhost:8080** (personnalisable via `APP_PORT` dans `.env`)
-- **Base MySQL** : accessible sur **127.0.0.1:3306** (personnalisable via `FORWARD_DB_PORT` dans `.env`, utilisateur `root`, sans mot de passe)
+- **Base MySQL** : accessible sur **127.0.0.1:3307** (personnalisable via `FORWARD_DB_PORT`, identifiants `DOCKER_DB_USERNAME` et `DOCKER_DB_PASSWORD`)
 - Les migrations (`php youssou:migrate`) et le jeu de données initial (`php youssou:seed`) s'exécutent automatiquement au démarrage.
 - Toutes les données sont conservées durablement dans le volume Docker `db_data`.
 
@@ -199,7 +201,7 @@ Sur la page `/login`, deux boutons permettent de se connecter immédiatement en 
 ### 4. Recherche Multicritère & Pagination
 - Sur `/salles` : filtre textuel (nom/bâtiment), filtre par type, seuil de capacité minimale et statut d'activité.
 - Sur `/reservations` : filtre par salle, par statut (confirmée/annulée), par mot-clé (responsable/motif) et par date de créneau.
-- Pagination paramétrable (`App\Pagination\Paginator`) avec conservation des paramètres de filtrage actifs.
+- Pagination paramétrable (`Illuminate\Pagination\LengthAwarePaginator`) avec conservation des paramètres de filtrage actifs.
 
 ### 5. Sécurité & Middlewares
 - **Prévention CSRF** : génération de jetons de session cryptographiques et validation sur chaque requête POST web.
@@ -211,6 +213,8 @@ Sur la page `/login`, deux boutons permettent de se connecter immédiatement en 
 - Verrouillage transactionnel pessimiste (`SELECT ... FOR UPDATE`) sur la salle lors de la création pour empêcher deux réservations simultanées conflictuelles.
 
 ### 7. API JSON REST
+Les chemins `/api/*` sont des alias des contrôleurs principaux. Ils utilisent le format `.env`, les mêmes droits et la même protection par session et CSRF. Les statuts 201 et 422 ci-dessous concernent le mode JSON ; HTML redirige après succès.
+
 Endpoints disponibles sous le préfixe `/api/` :
 - `GET /api/salles` : liste paginée et filtrée des salles.
 - `GET /api/salles/{id}` : détail d'une salle avec liste de ses réservations.
@@ -224,21 +228,21 @@ Endpoints disponibles sous le préfixe `/api/` :
 ### 8. Rendu Multiformat Unifié (HTML / JSON)
 Toutes les pages de l'application peuvent être rendues en format HTML traditionnel ou en format JSON structuré :
 - **Configuration globale via `.env`** : `APP_RESPONSE_FORMAT=html` (défaut) ou `APP_RESPONSE_FORMAT=json`.
-- **Surcharge à la volée via l'URL** : ajoutez `?format=json` ou `?format=html` sur n'importe quelle page (`/salles?format=json`, `/reservations?format=json`).
-- **Commutateur dans l'interface** : un badge interactif dans la barre de navigation permet de basculer instantanément entre HTML et JSON.
+- Le format est choisi exclusivement dans `.env` ; les paramètres `format` et l’en-tête `Accept` ne le modifient pas. Une valeur autre que `html` ou `json` provoque une erreur de configuration.
+- Après modification de `.env`, relancer `docker compose up -d` pour transmettre la configuration au conteneur. Aucun sélecteur de format n’est affiché.
 - **Réponse JSON normalisée** : contient `success: true`, `format: "json"`, `view: string` et le payload de données sérialisé sous `data: { ... }`.
 
 ### 9. Administration de la Base de Données (phpMyAdmin)
 L'infrastructure conteneurisée inclut une instance officielle de **phpMyAdmin** prête à l'emploi :
 - **URL d'accès** : `http://localhost:8081` (configurable via `PMA_PORT` dans `.env`).
-- **Connexion simplifiée** : serveur `database`, utilisateur `root`, mot de passe vide.
+- **Connexion** : serveur `database`, identifiants `DOCKER_DB_USERNAME` et `DOCKER_DB_PASSWORD` ; compte root réservé à l’administration avec `DOCKER_DB_ROOT_PASSWORD`.
 - **Raccourci Administrateur** : un bouton d'accès direct vers phpMyAdmin est présent dans le Tableau de Bord (`/dashboard`) pour les administrateurs connectés.
 
 ---
 
 ## Exécution de la Suite de Tests
 
-Pour lancer l'ensemble des 61 tests automatisés (tests unitaires métier, validation de formulaires, composants de pagination/CSRF/statistiques, tests fonctionnels HTTP et tests multiformat) :
+Pour lancer les tests automatisés (tests unitaires métier, validation de formulaires, composants de pagination/CSRF/statistiques, tests fonctionnels HTTP et tests multiformat) :
 
 ```bash
 ./vendor/bin/phpunit --testdox
@@ -281,7 +285,7 @@ ReservationSalleUniversite/
 │   ├── Http/                     # JsonResponse normalisée
 │   ├── Middleware/               # LoggingMiddleware, CsrfMiddleware, AuthMiddleware
 │   ├── Model/                    # Modèles Eloquent Salle, Reservation, User
-│   ├── Pagination/               # Paginator générique
+│   ├── Session/                  # Gestion centralisée des sessions
 │   ├── Repository/               # Interfaces et implémentations Eloquent
 │   ├── Service/                  # AuthService, CsrfService, LoggerService, StatistiquesService
 │   ├── Validation/               # Validateurs Respect\Validation et ValidationResult
@@ -309,3 +313,23 @@ ReservationSalleUniversite/
 └── README.md                     # Ce document
 ```
 
+
+### Sessions et clients JSON
+
+`SessionManager` centralise le cycle de vie PHP et les messages flash. La connexion renouvelle l’identifiant de session et le jeton CSRF. La déconnexion utilise `POST /logout` avec CSRF, invalide la session authentifiée et crée une session anonyme pour le message de confirmation.
+
+En mode JSON : appeler `GET /login`, conserver le cookie de session et lire `data.csrf_token`. Envoyer ensuite les identifiants à `POST /login` avec `_token` ou l’en-tête `X-CSRF-Token`. Remplacer le jeton par celui reçu dans la réponse de connexion. Les mutations API nécessitent le cookie et le jeton. Les réponses suivent l’enveloppe `success`, `format`, `view`, `data`. Les listes exposent la pagination Eloquent dans `data.paginator`.
+
+### Diagnostic Docker et données existantes
+
+Le conflit de démarrage observé était `bind: address already in use` sur le port hôte 3306. Le port publié par défaut est désormais 3307, alors que PHP utilise toujours `database:3306`. `docker compose logs database app` permet de distinguer une erreur MySQL d’un échec de migration.
+
+`DOCKER_DB_USERNAME`, `DOCKER_DB_PASSWORD` et `DOCKER_DB_ROOT_PASSWORD` configurent les comptes Docker ; `DB_USERNAME` et `DB_PASSWORD` restent destinés à PHP hors Docker. Les valeurs de démonstration de `.env.example` sont à adapter avant déploiement.
+
+Les variables d’initialisation MySQL ne modifient pas les comptes d’un volume déjà initialisé. Pour réutiliser un ancien volume, créer le compte applicatif avec ses droits sur `DB_DATABASE` depuis le compte administrateur existant, puis relancer Compose. Conserver le mot de passe administrateur réel du volume. Ne pas supprimer `db_data` pour résoudre un problème d’identifiants.
+
+Le volume `app_vendor` isole les dépendances du conteneur du montage local. L’entrypoint les synchronise avec `composer.lock`, attend une connexion MySQL authentifiée, puis exécute migrations et seeders. Les scripts de lancement bornent l’attente à 240 secondes.
+
+Les tests unitaires et HTTP s’exécutent sans MySQL avec `vendor/bin/phpunit --testsuite Unit,Http`. Réserver les tests `Integration` à une base de test dédiée, configurée par les variables `DB_*` : ils créent des données de recette.
+
+Les sessions PHP sont conservées dans le volume Docker `app_sessions`. Après un changement de `APP_RESPONSE_FORMAT` et `docker compose up -d`, actualiser la page courante : la connexion, le chemin, les filtres et la pagination restent utilisables. La première installation de cette correction nécessite `docker compose up -d --build`. Une session déjà perdue avant cette correction nécessite une nouvelle connexion. Ne pas supprimer le volume des sessions avec `down -v`.

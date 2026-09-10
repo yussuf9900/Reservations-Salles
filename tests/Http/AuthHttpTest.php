@@ -43,7 +43,7 @@ class AuthHttpTest extends HttpTestCase
     public function testLogoutClearsSession(): void
     {
         $_SESSION['user_id'] = 1;
-        $this->request('GET', '/logout');
+        $this->request('POST', '/logout', ['_token' => $this->csrf->getToken()]);
 
         $this->assertArrayNotHasKey('user_id', $_SESSION);
         $this->assertFalse($this->auth->check());

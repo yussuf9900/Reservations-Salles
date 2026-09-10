@@ -17,7 +17,7 @@ use App\Validation\ReservationValidator;
 use App\View\ViewRenderer;
 use Throwable;
 
-class ReservationController
+class ReservationController extends AbstractController
 {
     public function __construct(
         private readonly ReservationRepositoryInterface $reservations,
@@ -25,15 +25,16 @@ class ReservationController
         private readonly ReservationValidator $validator,
         private readonly CreerReservationService $creerReservationService,
         private readonly AnnulerReservationService $annulerReservationService,
-        private readonly ViewRenderer $view,
+        ViewRenderer $view,
         private readonly CsrfService $csrf,
         private readonly AuthService $auth
     ) {
+        parent::__construct($view);
     }
 
     public function index(): string
     {
-        $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
         $perPage = 8;
 
         $criteres = [
@@ -46,8 +47,9 @@ class ReservationController
         $paginator = $this->reservations->search($criteres, $page, $perPage);
 
         $queryParams = array_filter($criteres, fn($v) => $v !== '' && $v !== null);
+        $paginator->appends($queryParams);
 
-        return $this->view->render('reservation/index', [
+        return $this->render('reservation/index', [
             'title'               => 'Liste des réservations',
             'reservations'        => $paginator->items(),
             'paginator'           => $paginator,
@@ -66,13 +68,13 @@ class ReservationController
         $reservation = $this->reservations->findById($id);
         if ($reservation === null) {
             http_response_code(404);
-            return $this->view->render('error/404', ['title' => 'Réservation introuvable']);
+            return $this->render('error/404', ['title' => 'Réservation introuvable']);
         }
 
         $currentUser = $this->auth->user();
         $canCancel = $this->auth->isAdmin() || ($currentUser !== null && ($reservation->email === $currentUser->email || $reservation->responsable === $currentUser->nom));
 
-        return $this->view->render('reservation/show', [
+        return $this->render('reservation/show', [
             'title'       => 'Réservation #' . $reservation->id,
             'reservation' => $reservation,
             'csrf_token'  => $this->csrf->getToken(),
@@ -93,7 +95,7 @@ class ReservationController
             $old['email'] = $currentUser->email;
         }
 
-        return $this->view->render('reservation/form', [
+        return $this->render('reservation/form', [
             'title'               => 'Nouvelle réservation',
             'salles'              => $this->salles->all(),
             'salleIdSelectionnee' => $salleId,
@@ -115,7 +117,7 @@ class ReservationController
         $result = $this->validator->validate($data);
 
         if (!$result->isValid()) {
-            return $this->view->render('reservation/form', [
+            return $this->render('reservation/form', [
                 'title'               => 'Nouvelle réservation',
                 'salles'              => $this->salles->all(),
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
@@ -128,7 +130,7 @@ class ReservationController
         try {
             $dto = CreerReservationDTO::builder()->fromArray($result->validated())->build();
         } catch (Throwable $e) {
-            return $this->view->render('reservation/form', [
+            return $this->render('reservation/form', [
                 'title'               => 'Nouvelle réservation',
                 'salles'              => $this->salles->all(),
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
@@ -141,8 +143,8 @@ class ReservationController
         try {
             $reservation = $this->creerReservationService->execute($dto);
         } catch (SalleIndisponibleException $e) {
-            $this->view->setFlash('error', $e->getMessage());
-            return $this->view->render('reservation/form', [
+            $this->flash('error', $e->getMessage());
+            return $this->render('reservation/form', [
                 'title'               => 'Nouvelle réservation',
                 'salles'              => $this->salles->all(),
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
@@ -152,12 +154,8 @@ class ReservationController
             ]);
         }
 
-        $this->view->setFlash('success', 'Réservation confirmée avec succès.');
-        header('Location: /reservations/' . $reservation->id);
-        if (!defined('PHPUNIT_RUNNING')) {
-            exit;
-        }
-        return '';
+        $this->flash('success', 'Réservation confirmée avec succès.');
+        return $this->redirect('/reservations/' . $reservation->id, ['reservation' => $reservation], 201);
     }
 
     public function cancel(int $id): string
@@ -166,17 +164,12 @@ class ReservationController
         $reservation = $this->reservations->findById($id);
 
         if ($reservation === null) {
-            $this->view->setFlash('error', "La réservation #{$id} est introuvable.");
-            header('Location: /reservations');
-            if (!defined('PHPUNIT_RUNNING')) {
-                exit;
-            }
-            return '';
+            return $this->error(404, "La réservation #{$id} est introuvable.");
         }
 
         if (!$this->auth->isAdmin() && $currentUser !== null && $reservation->email !== $currentUser->email && $reservation->responsable !== $currentUser->nom) {
             http_response_code(403);
-            return $this->view->render('error/403', [
+            return $this->render('error/403', [
                 'title'          => 'Accès Refusé',
                 'message'        => 'Vous ne disposez pas des autorisations requises pour annuler la réservation d\'un autre utilisateur.',
                 'allowedMethods' => ['Seul le responsable propriétaire ou un administrateur peut annuler ce dossier.'],
@@ -185,15 +178,11 @@ class ReservationController
 
         try {
             $this->annulerReservationService->execute($id);
-            $this->view->setFlash('success', "La réservation #{$id} a été annulée avec succès.");
+            $this->flash('success', "La réservation #{$id} a été annulée avec succès.");
         } catch (ReservationIntrouvableException $e) {
-            $this->view->setFlash('error', $e->getMessage());
+            $this->flash('error', $e->getMessage());
         }
 
-        header('Location: /reservations/' . $id);
-        if (!defined('PHPUNIT_RUNNING')) {
-            exit;
-        }
-        return '';
+        return $this->redirect('/reservations/' . $id, ['reservation' => $this->reservations->findById($id)]);
     }
 }

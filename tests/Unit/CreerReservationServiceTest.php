@@ -24,7 +24,7 @@ class CreerReservationServiceTest extends TestCase
     {
         $this->salleRepo = new InMemorySalleRepository();
         $this->reservationRepo = new InMemoryReservationRepository();
-        $this->service = new CreerReservationService($this->salleRepo, $this->reservationRepo);
+        $this->service = new CreerReservationService($this->salleRepo, $this->reservationRepo, new \Tests\Double\InMemoryTransactionStrategy());
 
         $salle = new Salle([
             'nom'      => 'Salle B12',

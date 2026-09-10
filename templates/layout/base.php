@@ -47,22 +47,19 @@
                             </a>
                         </li>
                     <?php endif; ?>
-                    <li>
-                        <div class="format-switcher" title="Format d'affichage des données">
-                            <a href="<?= htmlspecialchars($urlFormatHtml ?? '?format=html') ?>" class="format-pill <?= ($currentFormat ?? 'html') === 'html' ? 'active' : '' ?>">HTML</a>
-                            <a href="<?= htmlspecialchars($urlFormatJson ?? '?format=json') ?>" class="format-pill <?= ($currentFormat ?? 'html') === 'json' ? 'active' : '' ?>">JSON</a>
-                        </div>
-                    </li>
                     <?php if (!empty($currentUser)): ?>
                         <li class="nav-separator">
                             <div class="user-info">
                                 <span class="badge badge-accent">
                                     <?= htmlspecialchars($currentUser->nom) ?> (<?= htmlspecialchars($currentUser->role) ?>)
                                 </span>
-                                <a href="/logout" class="nav-link nav-logout" title="Déconnexion">
+                                <form method="post" action="/logout">
+                                    <input type="hidden" name="_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                                    <button type="submit" class="nav-link nav-logout" title="Déconnexion">
                                     <?= \App\View\Icons::logOut('icon-sm') ?>
                                     <span>Quitter</span>
-                                </a>
+                                    </button>
+                                </form>
                             </div>
                         </li>
                     <?php endif; ?>

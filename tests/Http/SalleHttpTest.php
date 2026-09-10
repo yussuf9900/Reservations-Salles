@@ -45,15 +45,12 @@ class SalleHttpTest extends HttpTestCase
         $this->assertSame(405, $res['status']);
     }
 
-    public function testApiGetSallesReturnsJson(): void
+    public function testApiAliasUsesHtmlAndAuthentication(): void
     {
+        $this->loginAsAdmin();
         $res = $this->request('GET', '/api/salles');
-
         $this->assertSame(200, $res['status']);
-        $json = json_decode($res['body'], true);
-        $this->assertIsArray($json);
-        $this->assertArrayHasKey('data', $json);
-        $this->assertArrayHasKey('meta', $json);
+        $this->assertStringContainsString('<!DOCTYPE html>', $res['body']);
     }
 
     public function testAdminCanAccessEditPageAndHasValidCsrfToken(): void

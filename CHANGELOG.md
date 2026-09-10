@@ -2,6 +2,33 @@
 
 Toutes les modifications notables apportées à ce projet sont documentées dans ce fichier selon les recommandations [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [v1.4.0] - 2026-09-10
+
+### Persistance des sessions lors du changement de format
+
+- Stockage PHP dans un volume app_sessions pour conserver la connexion lors de la recréation du conteneur.
+- La page courante reste accessible après passage HTML/JSON dans .env.
+
+### Refactorisation sessions, stratégies et Docker
+
+- Correction du conflit du port MySQL : port hôte 3307, port interne 3306.
+- Identifiants applicatifs Docker distincts de root, contrôles authentifiés et attente bornée.
+- SessionManager, renouvellement de session et CSRF à la connexion, déconnexion POST.
+- AbstractController, SalleService et stratégies de réponse et de transaction injectées.
+- Format défini exclusivement par APP_RESPONSE_FORMAT ; routes API conservées comme alias protégés.
+- Pagination native Eloquent ; tests et documentation adaptés.
+
+### Compatibilité
+
+- Les alias API nécessitent désormais une session et un jeton CSRF pour les mutations.
+- Le format dépend uniquement de APP_RESPONSE_FORMAT ; les anciens paramètres URL et en-têtes de négociation sont ignorés.
+- La déconnexion utilise POST /logout. Les réponses JSON utilisent une enveloppe commune.
+
+### Validation
+
+- 83 tests, 247 assertions ; parcours HTML et JSON vérifiés dans Docker.
+- Persistance de la session, de la page et des filtres vérifiée lors du passage HTML → JSON → HTML.
+
 ## [v1.3.0] - 2026-09-09
 ### Sécurité & Authentification (RBAC)
 - **Verrouillage de l'accès privé** : Interception systématique dans `AuthMiddleware` de toutes les requêtes web privées non authentifiées (`/`, `/salles`, `/reservations`, `/dashboard`, etc.) avec redirection HTTP 302 vers `/login?redirect=...` (ou HTTP 401 pour les requêtes au format JSON).
