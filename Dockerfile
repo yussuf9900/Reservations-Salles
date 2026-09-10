@@ -17,6 +17,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+COPY docker/php-sessions.ini /usr/local/etc/php/conf.d/sessions.ini
+RUN install -d -m 1733 /var/lib/php/sessions
+
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
@@ -34,6 +37,6 @@ RUN chown -R www-data:www-data /var/www/html \
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+    CMD curl -f http://localhost/login || exit 1
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
