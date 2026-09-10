@@ -10,25 +10,17 @@ use App\View\ViewRenderer;
 
 class AuthController extends AbstractController
 {
-    public function __construct(
-        private readonly AuthService $auth,
-        private readonly CsrfService $csrf,
-        ViewRenderer $view
-    ) {
-        parent::__construct($view);
-    }
-
     public function showLogin(): string
     {
         if ($this->auth->check()) {
-            return $this->redirect('/dashboard', ['csrf_token' => $this->csrf->getToken()]);
+            return $this->redirect('/dashboard', ['csrf_token' => $this->csrfToken()]);
         }
 
         $redirect = (string)($_GET['redirect'] ?? '');
 
         return $this->render('auth/login', [
             'title'      => 'Connexion',
-            'csrf_token' => $this->csrf->getToken(),
+            'csrf_token' => $this->csrfToken(),
             'old_email'  => '',
             'error'      => null,
             'redirect'   => $redirect,
@@ -42,17 +34,17 @@ class AuthController extends AbstractController
         $redirect = (string)($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
         if ($this->auth->login($email, $password)) {
-            $user = $this->auth->user();
+            $user = $this->user();
             $this->flash('success', "Bienvenue, {$user->nom}.");
 
-            $target = $this->resolveRedirect($redirect, $this->auth->isAdmin());
-            return $this->redirect($target, ['csrf_token' => $this->csrf->getToken()]);
+            $target = $this->resolveRedirect($redirect, $this->isAdmin());
+            return $this->redirect($target, ['csrf_token' => $this->csrfToken()]);
         }
 
         http_response_code(401);
         return $this->render('auth/login', [
             'title'      => 'Connexion',
-            'csrf_token' => $this->csrf->getToken(),
+            'csrf_token' => $this->csrfToken(),
             'old_email'  => $email,
             'error'      => 'Identifiants incorrects. Veuillez vérifier votre adresse courriel et votre mot de passe.',
             'redirect'   => $redirect,
@@ -69,11 +61,11 @@ class AuthController extends AbstractController
         $redirect = (string)($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
         if ($this->auth->loginAs($role)) {
-            $user = $this->auth->user();
+            $user = $this->user();
             $this->flash('success', "Connexion rapide réussie en tant que {$user->nom} ({$role}).");
 
             $target = $this->resolveRedirect($redirect, $role === 'admin');
-            return $this->redirect($target, ['csrf_token' => $this->csrf->getToken()]);
+            return $this->redirect($target, ['csrf_token' => $this->csrfToken()]);
         }
 
         $this->flash('error', 'Impossible de se connecter avec ce compte.');

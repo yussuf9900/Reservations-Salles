@@ -8,25 +8,26 @@ use App\DTO\CreerSalleDTO;
 use App\Repository\SalleRepositoryInterface;
 use App\Service\AuthService;
 use App\Service\CsrfService;
+use App\Service\SalleService;
 use App\Validation\SalleValidator;
 use App\View\ViewRenderer;
 
 class SalleController extends AbstractController
 {
     public function __construct(
+        ViewRenderer $view,
+        AuthService $auth,
+        CsrfService $csrf,
         private readonly SalleRepositoryInterface $salles,
         private readonly SalleValidator $validator,
-        ViewRenderer $view,
-        private readonly CsrfService $csrf,
-        private readonly AuthService $auth,
-        private readonly \App\Service\SalleService $service
+        private readonly SalleService $service
     ) {
-        parent::__construct($view);
+        parent::__construct($view, $auth, $csrf);
     }
 
     public function index(): string
     {
-        $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+        $page = $this->getPage();
         $perPage = 6;
 
         $criteres = [
@@ -50,7 +51,7 @@ class SalleController extends AbstractController
             'criteres'    => $criteres,
             'queryParams' => $queryParams,
             'baseUrl'     => '/salles',
-            'isAdmin'     => $this->auth->isAdmin(),
+            'isAdmin'     => $this->isAdmin(),
         ]);
     }
 
@@ -65,7 +66,7 @@ class SalleController extends AbstractController
         return $this->render('salle/show', [
             'title'   => 'Détail de la salle : ' . $salle->nom,
             'salle'   => $salle,
-            'isAdmin' => $this->auth->isAdmin(),
+            'isAdmin' => $this->isAdmin(),
         ]);
     }
 
@@ -75,7 +76,7 @@ class SalleController extends AbstractController
             'title'      => 'Ajouter une salle',
             'old'        => [],
             'errors'     => [],
-            'csrf_token' => $this->csrf->getToken(),
+            'csrf_token' => $this->csrfToken(),
         ]);
     }
 
@@ -93,7 +94,7 @@ class SalleController extends AbstractController
                 'title'      => 'Ajouter une salle',
                 'old'        => $data,
                 'errors'     => $result->errors(),
-                'csrf_token' => $this->csrf->getToken(),
+                'csrf_token' => $this->csrfToken(),
             ]);
         }
 
@@ -124,7 +125,7 @@ class SalleController extends AbstractController
                 'active'   => $salle->active,
             ],
             'errors'     => [],
-            'csrf_token' => $this->csrf->getToken(),
+            'csrf_token' => $this->csrfToken(),
         ]);
     }
 
@@ -149,7 +150,7 @@ class SalleController extends AbstractController
                 'salle'      => $salle,
                 'old'        => $data,
                 'errors'     => $result->errors(),
-                'csrf_token' => $this->csrf->getToken(),
+                'csrf_token' => $this->csrfToken(),
             ]);
         }
 

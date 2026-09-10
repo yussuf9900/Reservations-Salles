@@ -5,17 +5,19 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Service\AuthService;
+use App\Service\CsrfService;
 use App\Service\StatistiquesService;
 use App\View\ViewRenderer;
 
 class DashboardController extends AbstractController
 {
     public function __construct(
-        private readonly StatistiquesService $statistiques,
-        private readonly AuthService $auth,
-        ViewRenderer $view
+        ViewRenderer $view,
+        AuthService $auth,
+        CsrfService $csrf,
+        private readonly StatistiquesService $statistiques
     ) {
-        parent::__construct($view);
+        parent::__construct($view, $auth, $csrf);
     }
 
     public function index(): string
@@ -25,7 +27,7 @@ class DashboardController extends AbstractController
         return $this->render('dashboard/index', [
             'title'       => 'Tableau de bord',
             'stats'       => $stats,
-            'currentUser' => $this->auth->user(),
+            'currentUser' => $this->user(),
         ]);
     }
 }
