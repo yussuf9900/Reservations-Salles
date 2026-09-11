@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: reservation-salles-docker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    healthCheckPath: /login
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_RESPONSE_FORMAT
+        value: html
+      - key: DB_DRIVER
+        value: mysql
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_HOST
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false

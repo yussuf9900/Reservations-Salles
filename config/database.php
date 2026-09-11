@@ -22,7 +22,17 @@ return function (): Capsule {
 
     $capsule = new Capsule();
 
-    $capsule->addConnection([
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_TIMEOUT => (int)($_ENV['DB_TIMEOUT'] ?? (getenv('DB_TIMEOUT') ?: 5)),
+    ];
+
+    $sslMode = $_ENV['DB_SSL'] ?? getenv('DB_SSL');
+    if ($sslMode === 'true' || $sslMode === '1') {
+        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    }
+
+    $connection = [
         'driver'    => $_ENV['DB_DRIVER'] ?? (getenv('DB_DRIVER') ?: 'mysql'),
         'host'      => $_ENV['DB_HOST'] ?? (getenv('DB_HOST') ?: '127.0.0.1'),
         'port'      => $_ENV['DB_PORT'] ?? (getenv('DB_PORT') ?: '3306'),
@@ -32,7 +42,15 @@ return function (): Capsule {
         'charset'   => 'utf8mb4',
         'collation' => 'utf8mb4_unicode_ci',
         'prefix'    => '',
-    ]);
+        'options'   => $options,
+    ];
+
+    $socket = $_ENV['DB_SOCKET'] ?? getenv('DB_SOCKET');
+    if (!empty($socket)) {
+        $connection['unix_socket'] = $socket;
+    }
+
+    $capsule->addConnection($connection);
 
     $capsule->setAsGlobal();
 
