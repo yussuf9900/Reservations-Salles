@@ -20,21 +20,21 @@ use Throwable;
 class ReservationController extends AbstractController
 {
     public function __construct(
+        ViewRenderer $view,
+        AuthService $auth,
+        CsrfService $csrf,
         private readonly ReservationRepositoryInterface $reservations,
         private readonly SalleRepositoryInterface $salles,
         private readonly ReservationValidator $validator,
         private readonly CreerReservationService $creerReservationService,
-        private readonly AnnulerReservationService $annulerReservationService,
-        ViewRenderer $view,
-        private readonly CsrfService $csrf,
-        private readonly AuthService $auth
+        private readonly AnnulerReservationService $annulerReservationService
     ) {
-        parent::__construct($view);
+        parent::__construct($view, $auth, $csrf);
     }
 
     public function index(): string
     {
-        $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+        $page = $this->getPage();
         $perPage = 8;
 
         $criteres = [
@@ -58,8 +58,8 @@ class ReservationController extends AbstractController
             'baseUrl'             => '/reservations',
             'salles'              => $this->salles->all(),
             'salleIdSelectionnee' => $criteres['salle_id'] !== '' ? (int)$criteres['salle_id'] : null,
-            'csrf_token'          => $this->csrf->getToken(),
-            'isAdmin'             => $this->auth->isAdmin(),
+            'csrf_token'          => $this->csrfToken(),
+            'isAdmin'             => $this->isAdmin(),
         ]);
     }
 
@@ -71,14 +71,14 @@ class ReservationController extends AbstractController
             return $this->render('error/404', ['title' => 'Réservation introuvable']);
         }
 
-        $currentUser = $this->auth->user();
-        $canCancel = $this->auth->isAdmin() || ($currentUser !== null && ($reservation->email === $currentUser->email || $reservation->responsable === $currentUser->nom));
+        $currentUser = $this->user();
+        $canCancel = $this->isAdmin() || ($currentUser !== null && ($reservation->email === $currentUser->email || $reservation->responsable === $currentUser->nom));
 
         return $this->render('reservation/show', [
             'title'       => 'Réservation #' . $reservation->id,
             'reservation' => $reservation,
-            'csrf_token'  => $this->csrf->getToken(),
-            'isAdmin'     => $this->auth->isAdmin(),
+            'csrf_token'  => $this->csrfToken(),
+            'isAdmin'     => $this->isAdmin(),
             'currentUser' => $currentUser,
             'canCancel'   => $canCancel,
         ]);
@@ -87,7 +87,7 @@ class ReservationController extends AbstractController
     public function create(): string
     {
         $salleId = isset($_GET['salle_id']) && is_numeric($_GET['salle_id']) ? (int)$_GET['salle_id'] : null;
-        $currentUser = $this->auth->user();
+        $currentUser = $this->user();
 
         $old = $salleId ? ['salle_id' => $salleId] : [];
         if ($currentUser !== null) {
@@ -101,14 +101,14 @@ class ReservationController extends AbstractController
             'salleIdSelectionnee' => $salleId,
             'old'                 => $old,
             'errors'              => [],
-            'csrf_token'          => $this->csrf->getToken(),
+            'csrf_token'          => $this->csrfToken(),
         ]);
     }
 
     public function store(): string
     {
         $data = $_POST;
-        $currentUser = $this->auth->user();
+        $currentUser = $this->user();
         if ($currentUser !== null) {
             $data['responsable'] = $currentUser->nom;
             $data['email'] = $currentUser->email;
@@ -123,7 +123,7 @@ class ReservationController extends AbstractController
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
                 'old'                 => $data,
                 'errors'              => $result->errors(),
-                'csrf_token'          => $this->csrf->getToken(),
+                'csrf_token'          => $this->csrfToken(),
             ]);
         }
 
@@ -136,7 +136,7 @@ class ReservationController extends AbstractController
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
                 'old'                 => $data,
                 'errors'              => ['date_debut' => $e->getMessage()],
-                'csrf_token'          => $this->csrf->getToken(),
+                'csrf_token'          => $this->csrfToken(),
             ]);
         }
 
@@ -150,7 +150,7 @@ class ReservationController extends AbstractController
                 'salleIdSelectionnee' => (int)($data['salle_id'] ?? 0),
                 'old'                 => $data,
                 'errors'              => ['general' => $e->getMessage()],
-                'csrf_token'          => $this->csrf->getToken(),
+                'csrf_token'          => $this->csrfToken(),
             ]);
         }
 
@@ -160,14 +160,14 @@ class ReservationController extends AbstractController
 
     public function cancel(int $id): string
     {
-        $currentUser = $this->auth->user();
+        $currentUser = $this->user();
         $reservation = $this->reservations->findById($id);
 
         if ($reservation === null) {
             return $this->error(404, "La réservation #{$id} est introuvable.");
         }
 
-        if (!$this->auth->isAdmin() && $currentUser !== null && $reservation->email !== $currentUser->email && $reservation->responsable !== $currentUser->nom) {
+        if (!$this->isAdmin() && $currentUser !== null && $reservation->email !== $currentUser->email && $reservation->responsable !== $currentUser->nom) {
             http_response_code(403);
             return $this->render('error/403', [
                 'title'          => 'Accès Refusé',

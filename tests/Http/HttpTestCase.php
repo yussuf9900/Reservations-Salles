@@ -126,10 +126,10 @@ abstract class HttpTestCase extends TestCase
         $annulerResService = new AnnulerReservationService($this->reservationRepo, new \Tests\Double\InMemoryTransactionStrategy(), $logger);
         $statsService = new StatistiquesService($this->salleRepo, $this->reservationRepo);
 
-        $salleCtrl = new SalleController($this->salleRepo, $salleValidator, $view, $this->csrf, $this->auth, new \App\Service\SalleService($this->salleRepo));
-        $resCtrl = new ReservationController($this->reservationRepo, $this->salleRepo, $resValidator, $creerResService, $annulerResService, $view, $this->csrf, $this->auth);
-        $authCtrl = new AuthController($this->auth, $this->csrf, $view);
-        $dashCtrl = new DashboardController($statsService, $this->auth, $view);
+        $salleCtrl = new SalleController($view, $this->auth, $this->csrf, $this->salleRepo, $salleValidator, new \App\Service\SalleService($this->salleRepo));
+        $resCtrl = new ReservationController($view, $this->auth, $this->csrf, $this->reservationRepo, $this->salleRepo, $resValidator, $creerResService, $annulerResService);
+        $authCtrl = new AuthController($view, $this->auth, $this->csrf);
+        $dashCtrl = new DashboardController($view, $this->auth, $this->csrf, $statsService);
 
 
         $routesCallback = require dirname(__DIR__, 2) . '/routes/web.php';
